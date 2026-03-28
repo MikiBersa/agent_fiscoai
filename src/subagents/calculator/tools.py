@@ -99,8 +99,8 @@ sandbox = Daytona(config).create()
 backend = DaytonaSandbox(sandbox=sandbox)
 
 model = init_chat_model(
-    "azure_openai:gpt-5-mini",  # nome modello lato LangChain
-    azure_deployment="gpt-5-mini",  # oppure il nome reale del deployment Azure
+    "azure_openai:gpt-4.1-mini",  # nome modello lato LangChain
+    azure_deployment="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
 )
 
 
@@ -139,7 +139,8 @@ def calculator_python(
     ops = [f"({query})" ]
 
     text = format_messages(result["messages"])
-    
+    # print("TEXT: ", text)
+
     return Command(
         update={
             "ops": ops,

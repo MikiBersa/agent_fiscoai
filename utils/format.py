@@ -46,18 +46,26 @@ def format_message_content(message):
 
 def format_messages(messages):
     """Format and display a list of messages with Rich formatting."""
+
+    stringa_testo = ""
     for m in messages:
         msg_type = m.__class__.__name__.replace("Message", "")
         content = format_message_content(m)
 
         if msg_type == "Human":
             console.print(Panel(content, title="🧑 Human", border_style="blue"))
+            stringa_testo += f"Human: {content}\n"  
         elif msg_type == "Ai":
             console.print(Panel(content, title="🤖 Assistant", border_style="green"))
+            stringa_testo += f"Assistant: {content}\n"  
         elif msg_type == "Tool":
             console.print(Panel(content, title="🔧 Tool Output", border_style="yellow"))
+            stringa_testo += f"Tool Output: {content}\n"  
         else:
             console.print(Panel(content, title=f"📝 {msg_type}", border_style="white"))
+            stringa_testo += f"{msg_type}: {content}\n"  
+
+    return stringa_testo
 
 
 def format_message(messages):
