@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Annotated, Literal, NotRequired
 
-from langgraph.prebuilt.chat_agent_executor import AgentState
+from langchain.agents import AgentState
 from typing_extensions import TypedDict
 
 class Summary(BaseModel):
