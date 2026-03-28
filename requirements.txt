@@ -9,3 +9,6 @@ httpx
 deepagents
 ipython
 rich
+langchain_sandbox
+daytona
+langchain_daytona

@@ -19,7 +19,7 @@ from langchain.agents import create_agent
 
 # Create agent using create_react_agent directly
 from src.subagents.calculator.prompts import SYSTEM_PROMPT
-from src.subagents.calculator.tools import calculator_wstate
+from src.subagents.calculator.tools import calculator_wstate, calculator_python
 from src.subagents.calculator.state import CalcState
 from utils.format import format_messages
 
@@ -28,7 +28,7 @@ model = init_chat_model(
     azure_deployment="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
 )
 
-tools = [calculator_wstate]  # new tool
+tools = [calculator_wstate, calculator_python]  # new tool
 
 # Create agent
 agent = create_agent(
@@ -46,7 +46,7 @@ if __name__ == "__main__":
             "messages": [
                 {
                     "role": "user",
-                    "content": "Calcolami il 10% di 320 euro e poi il 22% di 100 euro poi {(230*3)+30}",
+                    "content": "Calcola la somma di tutti i numeri da 1 a 1.000.000 che sono multipli di 3 oppure di 5, ma non di entrambi.",
                 }
             ],
         }
