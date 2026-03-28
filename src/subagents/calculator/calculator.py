@@ -24,8 +24,8 @@ from src.subagents.calculator.state import CalcState
 from utils.format import format_messages
 
 model = init_chat_model(
-    "azure_openai:gpt-4.1-mini",  # nome modello lato LangChain
-    azure_deployment="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
+    "azure_openai:gpt-5-mini",  # nome modello lato LangChain
+    azure_deployment="gpt-5-mini",  # oppure il nome reale del deployment Azure
 )
 
 tools = [calculator_wstate, calculator_python]  # new tool
