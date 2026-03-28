@@ -22,9 +22,9 @@ from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 
 # Create agent using create_react_agent directly
-from src.subagents.calculator.prompts import SYSTEM_PROMPT
-from src.subagents.calculator.state import CalcState
-from src.subagents.calculator.tools import calculator_python, calculator_wstate
+from src.subagents.websearch.prompts import RESEARCHER_INSTRUCTIONS
+from src.subagents.websearch.state import DeepAgentState
+from src.subagents.websearch.tools import tavily_search, think_tool, get_today_str
 from utils.format import format_messages
 
 model = init_chat_model(
@@ -32,14 +32,14 @@ model = init_chat_model(
     azure_deployment="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
 )
 
-tools = [calculator_wstate, calculator_python]  # new tool
+tools = [tavily_search, think_tool]  # new tool
 
 # Create agent
 agent = create_agent(
     model,
     tools,
-    system_prompt=SYSTEM_PROMPT,
-    state_schema=CalcState,  # now defining state scheme
+    system_prompt=RESEARCHER_INSTRUCTIONS.format(date=get_today_str()),
+    state_schema=DeepAgentState,  # now defining state scheme
 ).with_config(
     {"recursion_limit": 20}
 )  # recursion_limit limits the number of steps the agent will run
@@ -52,7 +52,7 @@ if __name__ == "__main__":
             "messages": [
                 {
                     "role": "user",
-                    "content": "Calcolami integrale del sin(x) tra -1 ed 1",
+                    "content": "Qual è il papa attuale di oggi?",
                 }
             ],
         }
