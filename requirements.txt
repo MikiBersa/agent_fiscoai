@@ -1,0 +1,11 @@
+langgraph
+langchain
+langchain-openai
+langchain_community
+langchain_tavily
+pydantic
+tavily-python
+httpx
+deepagents
+ipython
+rich

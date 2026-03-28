@@ -1,0 +1,1 @@
+SYSTEM_PROMPT = "You are a helpful arithmetic assistant who is an expert at using a calculator."
