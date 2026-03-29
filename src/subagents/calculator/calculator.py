@@ -35,7 +35,7 @@ model = init_chat_model(
 tools = [calculator_wstate, calculator_python]  # new tool
 
 # Create agent
-agent = create_agent(
+calculator_agent = create_agent(
     model,
     tools,
     system_prompt=SYSTEM_PROMPT,
@@ -44,10 +44,21 @@ agent = create_agent(
     {"recursion_limit": 20}
 )  # recursion_limit limits the number of steps the agent will run
 
+
+@tool
+def calculator_tool(expression: str) -> str:
+    """Use the calculator agent to evaluate a mathematical expression."""
+    print("=== Calculator agent invoked with expression: ", expression, " ===")
+    result = calculator_agent.invoke(
+        {"messages": [{"role": "user", "content": expression}]}
+    )
+    return format_messages(result["messages"])
+
+
 if __name__ == "__main__":
     # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
 
-    result2 = agent.invoke(
+    result2 = calculator_agent.invoke(
         {
             "messages": [
                 {

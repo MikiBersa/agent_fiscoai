@@ -9,22 +9,23 @@ warnings.filterwarnings(
 
 # Add the project root to sys.path
 sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 )
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from IPython.display import Image, display
-from langchain.agents import create_agent
+from deepagents import create_deep_agent
 from langchain.chat_models import init_chat_model
-from utils.format import format_messages
+from src.subagents.websearch.state import DeepAgentState
+from src.subagents.prompts import INSTRUCTIONS
 
-from src.subagents.todo.prompts import TODO_USAGE_INSTRUCTIONS
-from src.subagents.todo.state import DeepAgentState
-from src.subagents.todo.tools import read_todos, write_todos, think_tool
-from langchain_core.tools import tool
+from src.subagents.calculator.calculator import calculator_tool
+from src.subagents.todo.todo_agent import todo_tool
+from src.subagents.websearch.web_search import web_search_tool
+from langchain.agents import create_agent
+from utils.format import format_messages
 
 
 model = init_chat_model(
@@ -32,31 +33,22 @@ model = init_chat_model(
     azure_deployment="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
 )
 
-tools = [write_todos, read_todos, think_tool]
+tools = [calculator_tool, todo_tool, web_search_tool]
 
-# Create agent
-todo_agent = create_agent(
+supervisor_agent = create_agent(
     model,
     tools,
-    system_prompt=TODO_USAGE_INSTRUCTIONS,
-    state_schema=DeepAgentState,
+    system_prompt=INSTRUCTIONS,
+    state_schema=DeepAgentState,  # now defining state scheme
 ).with_config(
     {"recursion_limit": 20}
 )  # recursion_limit limits the number of steps the agent will run
 
 
-@tool
-def todo_tool(expression: str) -> str:
-    """Use the todo agent to evaluate a mathematical expression."""
-    print("=== Todo agent invoked with expression: ", expression, " ===")
-    result = todo_agent.invoke({"messages": [{"role": "user", "content": expression}]})
-    return format_messages(result["messages"])
-
-
 if __name__ == "__main__":
     # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
 
-    result2 = agent.invoke(
+    result2 = supervisor_agent.invoke(
         {
             "messages": [
                 {
