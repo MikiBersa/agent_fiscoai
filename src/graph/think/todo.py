@@ -182,12 +182,13 @@ async def replan_step(state: PlanExecute):
     # QUI METTERE UN LIMITE NEL REPLANNING
 
     output = await replanner.ainvoke(state)
-    if len(state["past_steps"]) > 5:
-        return {"response": output.action.response}
 
     if isinstance(output.action, Response):
         return {"response": output.action.response}
     else:
+        # TODO IN QUESTO CASO FORZARLO A DARE UNA RISPOSTA
+        if len(state["past_steps"]) > 5:
+            return {"response": "I have reached the maximum number of steps allowed without arriving at a final answer."}
         return {"plan": output.action.steps}
 
 
