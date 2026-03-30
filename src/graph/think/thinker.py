@@ -1,5 +1,8 @@
+from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import AzureChatOpenAI
 
+load_dotenv()
 
 SYSTEM_PROMPT = """
 # Prompt per Agente Pensatore / Revisore Strategico della Ricerca
@@ -219,6 +222,6 @@ thinker_prompt = ChatPromptTemplate.from_messages(
 )
 
 thinker = thinker_prompt | AzureChatOpenAI(
-    azure_deployment="gpt-5-mini",
+    azure_deployment="gpt-4.1-mini",
     api_version="2024-12-01-preview",
 )

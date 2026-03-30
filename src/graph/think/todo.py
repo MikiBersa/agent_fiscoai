@@ -67,13 +67,8 @@ class Act(BaseModel):
     )
 
 
-from langchain.prompts import ChatPromptTemplate
-
-planner_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """
+planner_prompt = ChatPromptTemplate.from_template(
+"""
 You are a planning agent.
 
 Your task is to generate a clear, minimal, and effective step-by-step plan to solve the user's objective.
@@ -83,7 +78,7 @@ You MUST base your planning on the strategic analysis provided by the THINKER.
 ---------------------
 THINKER ANALYSIS
 ---------------------
-{thinker}
+{thinker}   
 ---------------------
 
 Instructions:
@@ -113,10 +108,10 @@ Output format:
 - Numbered list of steps
 - No explanations outside the steps
 - Keep it concise but complete
+
+Messages:
+{messages}
 """
-        ),
-        ("placeholder", "{messages}"),
-    ]
 )
 
 planner = planner_prompt | AzureChatOpenAI(
@@ -176,7 +171,10 @@ async def execute_step(state: PlanExecute):
 
 
 async def plan_step(state: PlanExecute):
-    plan = await planner.ainvoke({"messages": [("user", state["input"])]})
+    plan = await planner.ainvoke({
+        "messages": [("user", state["input"])],
+        "thinker": state.get("thinker", "")
+    })
     return {"plan": plan.steps}
 
 
@@ -202,12 +200,13 @@ def should_end(state: PlanExecute):
 
 async def thinker_step(state: PlanExecute):
     thinker_response = await thinker.ainvoke({"messages": [("user", state["input"])]})
-    return {"thinker": thinker_response["messages"][-1].content}
+    return {"thinker": thinker_response.content}
 
 
 workflow = StateGraph(PlanExecute)
 
-workflow.add_node("thinker", thinker_step)
+workflow.add_node("pre_thinker", thinker_step)
+workflow.add_node("post_thinker", thinker_step)
 
 # Add the plan node
 workflow.add_node("planner", plan_step)
@@ -218,17 +217,17 @@ workflow.add_node("agent", execute_step)
 # Add a replan node
 workflow.add_node("replan", replan_step)
 
-workflow.add_edge(START, "thinker")
+workflow.add_edge(START, "pre_thinker")
 
-workflow.add_edge("thinker", "planner")
+workflow.add_edge("pre_thinker", "planner")
 
 # From plan we go to agent
 workflow.add_edge("planner", "agent")
 
-workflow.add_edge("agent", "thinker")
+workflow.add_edge("agent", "post_thinker")
 
 # From agent, we replan
-workflow.add_edge("thinker", "replan")
+workflow.add_edge("post_thinker", "replan")
 
 workflow.add_conditional_edges(
     "replan",
@@ -245,6 +244,9 @@ todo_workflow = workflow.compile()
 if __name__ == "__main__":
     import asyncio
     from langchain_core.messages import HumanMessage
+    from IPython.display import Image, display
+
+    # display(Image(todo_workflow.get_graph(xray=True).draw_mermaid_png()))
 
     async def main():
         thread = {"configurable": {"thread_id": "2"}}
