@@ -24,9 +24,8 @@ from langchain_core.tools import tool
 # Create agent using create_react_agent directly
 from src.subagents.websearch.prompts import RESEARCHER_INSTRUCTIONS
 from src.subagents.websearch.state import DeepAgentState
-from src.subagents.websearch.tools import tavily_search, think_tool, get_today_str
+from src.subagents.websearch.tools import get_today_str, tavily_search, think_tool
 from utils.format import format_messages
-from langchain_core.tools import tool
 
 model = init_chat_model(
     "azure_openai:gpt-4.1-mini",  # nome modello lato LangChain
@@ -42,7 +41,7 @@ web_search_agent = create_agent(
     system_prompt=RESEARCHER_INSTRUCTIONS.format(date=get_today_str()),
     state_schema=DeepAgentState,  # now defining state scheme
 ).with_config(
-    {"recursion_limit": 20}
+    {"recursion_limit": 5}
 )  # recursion_limit limits the number of steps the agent will run
 
 
@@ -50,14 +49,16 @@ web_search_agent = create_agent(
 def web_search_tool(expression: str) -> str:
     """Use the web search agent to evaluate a mathematical expression."""
     print("=== Web search agent invoked with expression: ", expression, " ===")
-    result = web_search_agent.invoke({"messages": [{"role": "user", "content": expression}]})
+    result = web_search_agent.invoke(
+        {"messages": [{"role": "user", "content": expression}]}
+    )
     return format_messages(result["messages"])
 
 
 if __name__ == "__main__":
     # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
 
-    result2 = agent.invoke(
+    result2 = web_search_agent.invoke(
         {
             "messages": [
                 {
@@ -68,4 +69,5 @@ if __name__ == "__main__":
         }
     )
 
+    format_messages(result2["messages"])
     format_messages(result2["messages"])

@@ -147,10 +147,17 @@ if __name__ == "__main__":
         {
             "messages": [
                 HumanMessage(
-                    content="I want to research the best coffee shops in San Francisco."
+                    content="un'azienda ha dato in affitto a un cliente un capannone , nel corso dell'anno il cliente è entrato in composizione negoziata per crisi d'impresa. Gli affitti non fatturati dal momento di attivazione della crisi vanno rilevati in bilancio?"
                 )
             ]
         },
         config=thread,
     )
     format_messages(result["messages"])
+
+    while True:
+        user_input = input("User: ")
+        result = scope_research.invoke(
+            {"messages": [HumanMessage(content=user_input)]}, config=thread
+        )
+        format_messages(result["messages"])
