@@ -2,6 +2,16 @@ from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import AzureChatOpenAI
 
+"""
+llm = AzureChatOpenAI(
+    azure_deployment="gpt-4o",
+    api_version="2024-02-15-preview",
+    temperature=0.2,
+    max_tokens=1000,
+    timeout=30,
+    max_retries=3,
+)
+"""
 load_dotenv()
 
 SYSTEM_PROMPT = """
@@ -224,4 +234,5 @@ thinker_prompt = ChatPromptTemplate.from_messages(
 thinker = thinker_prompt | AzureChatOpenAI(
     azure_deployment="gpt-4.1-mini",
     api_version="2024-12-01-preview",
+    max_tokens=1000,
 )

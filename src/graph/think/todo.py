@@ -34,6 +34,7 @@ from typing_extensions import TypedDict
 from src.graph.think.search_support import search_agent
 from src.graph.think.thinker import thinker
 from utils.format import format_messages
+from src.graph.think.response import response_llm
 
 
 class PlanExecute(TypedDict):
@@ -188,7 +189,8 @@ async def replan_step(state: PlanExecute):
     else:
         # TODO IN QUESTO CASO FORZARLO A DARE UNA RISPOSTA
         if len(state["past_steps"]) > 5:
-            return {"response": "I have reached the maximum number of steps allowed without arriving at a final answer."}
+            output = await response_llm.ainvoke(state)
+            return {"response": output.content}
         return {"plan": output.action.steps}
 
 

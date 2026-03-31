@@ -13,3 +13,6 @@ langchain_sandbox
 daytona
 langchain_daytona
 markdownify
+openai
+qdrant_client
+pymongo
