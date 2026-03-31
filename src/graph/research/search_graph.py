@@ -46,7 +46,7 @@ web_search_agent = create_agent(
     tools,
     system_prompt=RESEARCHER_INSTRUCTIONS.format(date=get_today_str()),
     state_schema=SearchState,  # now defining state scheme
-).with_config({"recursion_limit": 5})
+).with_config({"recursion_limit": 10})
 
 
 if __name__ == "__main__":
@@ -57,10 +57,14 @@ if __name__ == "__main__":
             "messages": [
                 {
                     "role": "user",
-                    "content": "Ho ricevuto le informazioni necessarie per procedere: si tratta di una rilevazione in bilancio d'esercizio secondo OIC, riguardante ricavi da affitti non fatturati dopo l'attivazione di una composizione negoziata per crisi d'impresa. Procederò ora alla ricerca e analisi normativa per fornirti una risposta precisa.",
+                    "content": "Come devono essere rilevati in bilancio d’esercizio, secondo i principi OIC, i ricavi da affitti non fatturati successivamente all’attivazione di una composizione negoziata per crisi d’impresa?",
                 }
             ],
+            "list_fonte": [],
         }
     )
 
     format_messages(result["messages"])
+
+    print("=" * 80)
+    print(len(result["list_fonte"]))

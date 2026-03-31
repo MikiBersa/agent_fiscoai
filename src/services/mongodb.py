@@ -79,3 +79,6 @@ class MongoDBConnection:
 
     def get_circolare_chunks(self, procet={}, filtro={}):
         return self.collection.find(filtro, procet)
+
+    def count_circolare_chunks(self, filtro={}):
+        return self.collection.count_documents(filtro)

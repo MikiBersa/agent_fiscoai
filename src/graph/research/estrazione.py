@@ -109,38 +109,36 @@ def estrazione_circolari(result):
             procet={"info": 1, "id": 1, "url": 1},
         )
 
-    print(circolare_original)
+    # print(circolare_original)
 
     fonte["mongo_id"] = str(circolare_original["_id"])
     fonte["id"] = str(circolare_original["id"])
     fonte["data"] = str(circolare_original["info"]["data"])
     fonte["original_text"] = "\n\n".join(circolare_original["info"]["pagine"])
 
+    # print("=====")
+
+    # 2) espansione a paragrafo
     mongodb.set_collection("circolari_chunk")
 
     id = result["id"]
 
+    num_total = mongodb.count_circolare_chunks(filtro={"id": nome_id})
+
+    print("NOME ID: ", nome_id, num_total)
+
+    # print("=====: ", num_total)
+
+    array_chunk = build_chunk_window(circolare_chunk["num_chunk"], num_total)
+
+    print(array_chunk)
+
     circolare_chunks = mongodb.get_circolare_chunks(
-        filtro={"id": nome_id},
-        procet={"id": 1},
+        filtro={"id": nome_id, "num_chunk": {"$in": array_chunk}},
+        procet={"text": 1},
     )
 
-    num_total = len(circolare_chunks)
-
-    array_chunk = 
-
-    if circolare_chunk["num_chunk"] == 0:
-        id = result["id"]
-        array_chunk = [0, 1, 2, 3, 4]
-        circolare_chunks = mongodb.get_circolare_chunks(
-            filtro={"_id": ObjectId(id), "num_chunk": {"$in": array_chunk}},
-            procet={"text": 1},
-        )
-    else:
-        array_chunk = [0, 1, circolare_chunk["num_chunk"], 3, 4]
-
     """
-    2) espansione a paragrafo
     3) espansione citazioni
     5) controllare doppioni dopo
     """
@@ -153,10 +151,15 @@ def estrazione_circolari(result):
         tipo=fonte["tipo"],
         score=0.0,
         data=fonte["data"],
+        ricostruito_testo=[elem["text"] for elem in circolare_chunks],
         cites=[],
     )
     return fonte
 
 
 if __name__ == "__main__":
-    print(estrazione_circolari({"id": "67f12a3172d91a31f1960862"}))
+    elem: Fonte = estrazione_circolari({"id": "67f12a3172d91a31f1960862"})
+
+    for elem_ in elem.ricostruito_testo:
+        print(elem_[:30])
+        print("=" * 80)

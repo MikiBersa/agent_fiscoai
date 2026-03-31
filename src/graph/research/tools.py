@@ -1,38 +1,55 @@
 from typing import Annotated, Literal
 
-from langchain_core.tools import tool
+from langchain_core.messages import ToolMessage
+from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
+from langgraph.types import Command
 
-from src.graph.research.state import SearchState
+from src.graph.research.estrazione import estrazione_circolari
+from src.graph.research.state import Fonte, SearchState
 from src.services.embeddings import EmbeddingAzure
 from src.services.qdrant import QdrantHybridRetriever
-from src.graph.research.estrazione import estrazione_circolari
 
-LIMIT_QDRANT_TOP = 10
+LIMIT_QDRANT_TOP = 2
 
 
 def get_qrant():
     azure_embedding = EmbeddingAzure()
     retriever = QdrantHybridRetriever(
-        qdrant_url="http://localhost:6333",
+        # qdrant_url="http://localhost:6333",
+        qdrant_url="http://100.77.246.20:6333",
         provider_embedding=azure_embedding,
     )
 
     return retriever
 
 
-def extractionFonte(formatted_results):
+def extractionFonte(formatted_results) -> list[Fonte]:
+    nome_id = set()
+    list_fonte = []
     for result in formatted_results:
         if result["tipo"] == "circolare":
-            estrazione_circolari(result)
+            fonte: Fonte = estrazione_circolari(result)
+
+            if fonte.id not in nome_id:
+                nome_id.add(fonte.id)
+                list_fonte.append(fonte)
+            else:
+                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                for elem in list_fonte:
+                    elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+
+        # if result["tipo"] == "circolare":
+
+    return list_fonte
 
 
 @tool(parse_docstring=True)
 def rag_query(
     query: str,
-    tipo: Literal["circolare", "all"],
-    state: Annotated[SearchState, InjectedState],
-) -> str:
+    tipo: Literal["circolare"],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> list:
     """Esegue una ricerca nella knowledge base circolari e di prassi (RAG) di Agenzia delle Entrate.
 
     Args:
@@ -42,12 +59,16 @@ def rag_query(
     Returns:
         I risultati della ricerca formattati come testo leggibile.
     """
+    print("==== RICERCA RAG =====")
+    print(query)
+
     retriever = get_qrant()
 
     # Configuro il filtro in base al tipo richiesto
     query_filter = None
-    if tipo != "all":
-        query_filter = retriever.build_filter(tipo=tipo)
+    # if tipo != "all":
+    #    query_filter = retriever.build_filter(tipo=tipo)
+    query_filter = retriever.build_filter(tipo="circolare")
 
     # Eseguo la ricerca (ibrida densa + sparsa)
     try:
@@ -57,10 +78,42 @@ def rag_query(
         formatted_results = retriever.format_results(search_results)
 
         # TODO ANALIZZARE IL FORMATO ED ESPANDERE CON MONGODB
+        list_fonte = extractionFonte(formatted_results)
+
+        print("RITORNO ELEM")
     except Exception as e:
-        return f"Errore durante la ricerca RAG: {str(e)}"
+        print("ERRORE: ", str(e))
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(
+                        f"Errore durante la ricerca RAG: {str(e)}",
+                        tool_call_id=tool_call_id,
+                    )
+                ],
+            }
+        )
 
-    if not formatted_results:
-        return f"Nessun risultato trovato nella knowledge base per la query '{query}' con filtro tipo: '{tipo}'."
+    # RITORNA IL TESTO TOTALE
+    testo = ""
 
-    return None
+    for fonte in list_fonte:
+        header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
+        corpo = "\n\n".join(fonte.ricostruito_testo)
+        footer = "</Fonte>"
+
+        testo += header + "\n" + corpo + "\n" + footer + "\n\n"
+
+    print("RICOSTRUITO IL TESTO")
+    print(len(testo))
+
+    return Command(
+        update={
+            "list_fonte": list_fonte,
+            "messages": [
+                ToolMessage(
+                    f"Informazioni trovate:\n{testo}", tool_call_id=tool_call_id
+                )
+            ],
+        }
+    )
