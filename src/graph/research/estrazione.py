@@ -18,6 +18,7 @@ load_dotenv()
 
 from src.services.mongodb import MongoDBConnection
 from bson import ObjectId
+from src.graph.research.state import Fonte, CitedFonte
 
 def estrazione_circolari(result):
     mongodb = MongoDBConnection()
@@ -26,8 +27,14 @@ def estrazione_circolari(result):
 
     id = result["id"]
 
-    circolare_chunk = mongodb.get_circolare_chunk(filtro={"_id": ObjectId(id)}, procet={"parent_id": 1, "text-embedding-3-large-1024": 0, "text-embedding-3-large": 0})
+    circolare_chunk = mongodb.get_circolare_chunk(filtro={"_id": ObjectId(id)}, procet={"parent_id": 1})
 
+    """
+    1) ritorno del padre
+    2) espansione a paragraf0
+    3) espansione citazioni
+    4) costruzione dell'oggetto
+    """
     return circolare_chunk
 
 if __name__ == "__main__":

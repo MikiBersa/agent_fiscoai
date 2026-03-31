@@ -6,6 +6,7 @@ from langgraph.prebuilt import InjectedState
 from src.graph.research.state import SearchState
 from src.services.embeddings import EmbeddingAzure
 from src.services.qdrant import QdrantHybridRetriever
+from src.graph.research.estrazione import estrazione_circolari
 
 LIMIT_QDRANT_TOP = 10
 
@@ -22,7 +23,8 @@ def get_qrant():
 
 def extractionFonte(formatted_results):
     for result in formatted_results:
-        pass
+        if result["tipo"] == "circolare":
+            estrazione_circolari(result)
 
 
 @tool(parse_docstring=True)
