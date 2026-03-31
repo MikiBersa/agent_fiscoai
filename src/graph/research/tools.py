@@ -20,18 +20,22 @@ def get_qrant():
     return retriever
 
 
+def extractionFonte(formatted_results):
+    for result in formatted_results:
+        pass
+
+
 @tool(parse_docstring=True)
 def rag_query(
     query: str,
     tipo: Literal["circolare", "all"],
     state: Annotated[SearchState, InjectedState],
 ) -> str:
-    """Esegue una ricerca nella knowledge base normativa e di prassi (RAG) di Agenzia delle Entrate.
+    """Esegue una ricerca nella knowledge base circolari e di prassi (RAG) di Agenzia delle Entrate.
 
     Args:
         query: Testo della ricerca in linguaggio naturale (es. "detrazione ristrutturazioni edilizie").
         tipo: Tipologia di documenti su cui filtrare la ricerca. Usare 'all' per cercare ovunque.
-        state: Stato corrente dell'agente per contesto aggiuntivo (iniettato automaticamente).
 
     Returns:
         I risultati della ricerca formattati come testo leggibile.

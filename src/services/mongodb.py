@@ -9,7 +9,7 @@ MONGODB_CONNECTION = "mongodb://192.168.178.29:27017/"
 
 # mongodb+srv://<db_username>:<db_password>@atlascluster.szzzwuw.mongodb.net/?retryWrites=true&w=majority&appName=AtlasCluster
 class MongoDBConnection:
-    def __init__(self, collection_name="log", azure=True, db_name="VerticalAI"):
+    def __init__(self, collection_name="log", azure=True, db_name="vertical_ai"):
         # Configurazione
         # self.mongo_cluster_uri = "mongodb+srv://aiagentsystemopenai:yjTwh90bDHHFMyjl@verticalai.qgef8.mongodb.net/?retryWrites=true&w=majority&appName=VerticalAI"
 
@@ -66,3 +66,15 @@ class MongoDBConnection:
         )
 
         return docs
+    
+    def get_circolare_chunk(self, procet = {}, filtro = {}):
+        if procet == {}:
+            doc = self.collection.find_one(
+                filtro
+            )
+        else:
+            doc = self.collection.find_one(
+                filtro, procet
+            )
+
+        return doc
