@@ -376,7 +376,8 @@ class QdrantHybridRetriever:
 
 if __name__ == "__main__":
     azure_embedding = EmbeddingAzure()
-    qdrant_url = "http://192.168.178.29:6333"
+    # qdrant_url = "http://192.168.178.29:6333"
+    qdrant_url = "http://100.77.246.20:6333"
     retriever = QdrantHybridRetriever(
         qdrant_url=qdrant_url, provider_embedding=azure_embedding
     )

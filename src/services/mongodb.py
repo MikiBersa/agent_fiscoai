@@ -5,7 +5,9 @@ from bson import ObjectId
 from pymongo import MongoClient
 
 # MONGODB_CONNECTION = "mongodb://admin:admin123@localhost:27017/"
-MONGODB_CONNECTION = "mongodb://192.168.178.29:27017/"
+# MONGODB_CONNECTION = "mongodb://192.168.178.29:27017/"
+MONGODB_CONNECTION = "mongodb://100.77.246.20:27017/"
+
 
 # mongodb+srv://<db_username>:<db_password>@atlascluster.szzzwuw.mongodb.net/?retryWrites=true&w=majority&appName=AtlasCluster
 class MongoDBConnection:
@@ -66,15 +68,14 @@ class MongoDBConnection:
         )
 
         return docs
-    
-    def get_circolare_chunk(self, procet = {}, filtro = {}):
+
+    def get_circolare_chunk(self, procet={}, filtro={}):
         if procet == {}:
-            doc = self.collection.find_one(
-                filtro
-            )
+            doc = self.collection.find_one(filtro)
         else:
-            doc = self.collection.find_one(
-                filtro, procet
-            )
+            doc = self.collection.find_one(filtro, procet)
 
         return doc
+
+    def get_circolare_chunks(self, procet={}, filtro={}):
+        return self.collection.find(filtro, procet)
