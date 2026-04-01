@@ -36,14 +36,18 @@ from src.graph.think.thinker import thinker
 from utils.format import format_messages
 from src.graph.think.response import response_llm
 from src.graph.research.search_graph import rag_search_agent
+from src.graph.research.state import Fonte
+from langchain.agents import AgentState
 
 
-class PlanExecute(TypedDict):
+class PlanExecute(AgentState):
     input: str
     plan: List[str]
     past_steps: Annotated[List[Tuple], operator.add]
     response: str
+    response_moment: str
     thinker: str
+    list_fonte: Annotated[List[Fonte], operator.add]
 
 
 class Plan(BaseModel):
@@ -163,16 +167,22 @@ async def execute_step(state: PlanExecute):
     task_formatted = f"""For the following plan:
     {plan_str}\n\nYou are tasked with executing step {1}, {task}."""
 
+    # response_moment
+
     #agent_response = await search_agent.ainvoke(
     #    {"messages": [("user", task_formatted)]}
     #)
 
     agent_response = await rag_search_agent.ainvoke(
-        {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": [],}
+        {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": state["list_fonte"], "summary": ""}
     )
 
+    summary_moment = state["response_moment"] + "\n"+"="*80+"\n" +task_formatted.replace("You are", "It is")+ "\n\n"+ agent_response["summary"] + "\n"+"="*80+"\n"
+
     return {
-        "past_steps": [(task, agent_response["messages"][-1].content)],
+        "past_steps": [(task, agent_response["summary"])],
+        "list_fonte": agent_response["list_fonte"],
+        "response_moment": summary_moment,
     }
 
 
@@ -205,9 +215,9 @@ def should_end(state: PlanExecute):
     else:
         return "agent"
 
-
+# TODO METTERE QUI IL TESTO
 async def thinker_step(state: PlanExecute):
-    thinker_response = await thinker.ainvoke({"messages": [("user", state["input"])]})
+    thinker_response = await thinker.ainvoke({"messages": state["messages"], "response_moment": state["response_moment"]})
     return {"thinker": thinker_response.content}
 
 
@@ -256,31 +266,35 @@ if __name__ == "__main__":
     from IPython.display import Image, display
 
     # display(Image(todo_workflow.get_graph(xray=True).draw_mermaid_png()))
-
+    
     async def main():
-        thread = {"configurable": {"thread_id": "2"}}
-        inputs = {"input": """L'Istante, condomino di un ''condominio minimo'' situato nel territorio della
-Regione X composto da n. 5 unità immobiliari, unitamente agli altri proprietari
-e comodatari, ha deliberato e incaricato una ditta edile di effettuare interventi di
-efficientamento energetico di cui all'articolo 119 del decreto legge n. 34 del 2020 (cd.
-Superbonus), con conseguente presentazione della CILAS in data 15 aprile 2022.
-L'Istante rappresenta che intende sostituire (come intervento ''trainato'') le
-finestre e persiane ''ad arco'' dell'intero edificio con il mantenimento della stessa forma e
-che, al momento della firma del contratto di appalto avvenuto ad aprile 2022, il prezzario
-Pagina 2 di 5
-della Regione X non contemplava tale tipologia di infisso e, pertanto, è stato utilizzato
-il prezzario della ''vicina'' Regione Y edizione 2021 che, invece, la prevedeva.
-L'Istante fa presente che la sostituzione delle finestre e persiane è attualmente in
-corso e che, nel frattempo, la Regione X ha aggiornato il prezzario includendovi anche
-i prezzi riferiti alla sostituzione delle persiane e delle finestre ''ad arco''.
-Con documentazione integrativa l'Istante ha specificato che per l'intervento
-complessivo prospettato è stato completato il primo SAL, in data 2 maggio 2023, e che
-il secondo e ultimo SAL, nel quale confluirà anche l'intervento trainato di sostituzione
-delle finestre e persiane, è in corso. Lo stesso ha altresì rappresentato che i condomini
-hanno optato per l'applicazione del cd. ''sconto in fattura''.
-Ciò premesso, l'Istante chiede quale prezzario deve essere utilizzato per la verifica
-della congruità dei prezzi prevista dall'articolo 119, comma 13, del decreto legge n. 34
-del 2020."""}
+        thread = {"configurable": {"thread_id": "5"}}
+        inputs = {"input": """L'Istante, in qualità di titolare di una ditta individuale rappresenta di svolgere
+attività come studio di consulenza per la circolazione dei mezzi di trasporto e
+dichiara che presso lo studio medesimo sono operativi sia lo ''Sportello Telematico
+dell'Automobilista'' (STA), sia lo ''Sportello Telematico del Diportista'' (STED).
+Al riguardo, fa presente di svolgere in via esclusiva l'attività di gestione
+delle pratiche amministrative relative alla nautica da diporto, gran parte delle quali
+rappresentate dai passaggi di proprietà di unità superiori ai 10 metri e, quindi, iscritte
+negli appositi registri.
+Pagina 2 di 8
+L'Istante riferisce che sulla base di quanto previsto dall'articolo 7 del decreto
+legge 4 luglio 2006, n. 223, convertito con modificazioni dalla legge 4 agosto 2006, n.
+248, avente ad oggetto misure urgenti in materia di passaggi di proprietà di beni mobili
+registrati, i passaggi di proprietà delle imbarcazioni da diporto avvengono tramite atti
+sui quali autentica la firma delle parti contraenti, nel rispetto della previsione recata dalla
+disposizione richiamata.
+Atteso che tra i soggetti obbligati a richiedere la registrazione, l'articolo 10 del
+d.P.R. 26 aprile 1986, n. 131, al comma 1, lettera b) contempla «i notai, gli ufficiali
+giudiziari, i segretari o delegati della pubblica amministrazione e gli altri pubblici
+ufficiali per gli atti da essi redatti, ricevuti o autenticati», l'Istante chiede se tra gli stessi
+rientrano anche i titolari di STA e STED relativamente all'autentica apposta sull'atto di
+compravendita del bene mobile registrato.
+In sede di documentazione integrativa, l'Istante ha precisato che dal 2021 è
+operativo l'''Archivio Telematico Centrale'' (ATCN) e «La registrazione, oltre ad essere
+obbligatoria, è, in ogni caso, indispensabile per procedere alle trascrizioni da parte
+dello STED nell'Archivio Telematico Centrale».""", 
+            "response_moment": ""}
 
         async for event in todo_workflow.astream(inputs, config=thread):
             for k, v in event.items():

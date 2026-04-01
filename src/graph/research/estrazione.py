@@ -432,6 +432,9 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
         index="index_nome_id"
     )
 
+    if norma_original is None:
+        return None
+
     testo = ""
     for article in norma_original["article"]:
         if articolo in article["articolo_num"]:

@@ -253,6 +253,62 @@ def rag_query_norma_specifica(
 
     return _rag_query_norma_specifica(anno, numero, articolo, tool_call_id)
 
+@tool(parse_docstring=True)
+def summary_writing(
+    state: Annotated[SearchState, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> str:
+    """Questo tool fa un riassunto dettagliato delle informazioni trovate durate la richerca.
+
+    Args:
+
+    Returns:
+        I risultati della ricerca formattati come testo leggibile.
+    """
+
+    print("==== SUMMARY WRITING ====")
+    
+
+    list_fonte = state["list_fonte"]
+    testo = ""
+
+    for fonte in list_fonte:
+        header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
+        corpo = "\n\n".join(fonte.ricostruito_testo)
+        footer = "</Fonte>"
+
+        testo += header + "\n" + corpo + "\n" + footer + "\n\n"
+    
+    summary_prompt = ChatPromptTemplate.from_template(
+        """
+        Sei un esperto di diritto tributario italiano.
+        Il tuo compito è fare un riassunto dettagliato delle informazioni trovate durate la richerca.
+        Ripoorta le infromazioni più fedelmente possibile al testo originale.
+        
+        <TESTO DA ANALIZZARE>
+        {testo}
+        </TESTO DA ANALIZZARE>
+        """
+    )
+
+    summary_agent = summary_prompt | AzureChatOpenAI(
+        azure_deployment="gpt-4.1-mini",
+        api_version="2024-12-01-preview",
+        # max_tokens=1000,
+    )
+
+    summary = summary_agent.invoke({"testo": testo})
+
+    return Command(
+        update={
+            "summary": summary.content,
+            "messages": [
+                ToolMessage(
+                    f"Riassunto della ricerca:\n{summary}", tool_call_id=tool_call_id
+                )
+            ],
+        }
+    )
 
 if __name__ == "__main__":
     # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))

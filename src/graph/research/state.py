@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
+import operator
 
 from langchain.agents import AgentState
 from pydantic import BaseModel, Field
@@ -28,4 +29,5 @@ class Fonte(BaseModel):
 
 
 class SearchState(AgentState):
-    list_fonte: list[Fonte]
+    list_fonte: Annotated[list[Fonte], operator.add]
+    summary: str

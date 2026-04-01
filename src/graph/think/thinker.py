@@ -224,15 +224,26 @@ ma quella che riesce a mostrare con precisione:
 Il tuo ruolo è quindi quello di **pensare a fondo, scomporre bene, controllare la qualità della ricerca e indicare con lucidità ciò che deve essere approfondito**.
 """
 
-thinker_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", SYSTEM_PROMPT),
-        ("placeholder", "{messages}"),
-    ]
+thinker_prompt = ChatPromptTemplate.from_template(
+    SYSTEM_PROMPT +
+    """
+
+    Devi prendere le prossime decisioni in base alle infromazioni che ti vengono date ora.
+    Quindi devi pianificare quale ricerche fare successivamente.
+
+    <Informazioni ATTUALE>
+    {response_moment}
+    </Informazioni ATTUALE>
+    
+    Ti riporto anche i messaggi scambiati finora:
+    <MESSAGGI>
+    {messages}
+    </MESSAGGI>
+    """
 )
 
 thinker = thinker_prompt | AzureChatOpenAI(
     azure_deployment="gpt-4.1-mini",
     api_version="2024-12-01-preview",
-    max_tokens=1000,
+    # max_tokens=1000,
 )

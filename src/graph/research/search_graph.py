@@ -24,7 +24,7 @@ from langchain.chat_models import init_chat_model
 
 from src.graph.research.prompts import RESEARCHER_INSTRUCTIONS
 from src.graph.research.state import SearchState
-from src.graph.research.tools import rag_query, rag_query_norma_specifica
+from src.graph.research.tools import rag_query, rag_query_norma_specifica, summary_writing
 from utils.format import format_messages
 
 
@@ -38,8 +38,9 @@ model = init_chat_model(
     azure_deployment="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
 )
 
-tools = [rag_query, rag_query_norma_specifica]  # new tool
+tools = [rag_query, rag_query_norma_specifica, summary_writing]  # new tool
 
+# TODO RENDERLO PIù DETEMINISTICO
 # Create agent
 rag_search_agent = create_agent(
     model,
