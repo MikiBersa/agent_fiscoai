@@ -18,6 +18,11 @@ Your original plan was this:
 You have currently completed the following steps:
 {past_steps}
 
+## Information learned during the research, on which the answer must be based:
+<info>
+{response_moment}
+</info>
+
 ---
 
 ## 🧾 Task

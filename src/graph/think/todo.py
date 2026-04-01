@@ -48,7 +48,8 @@ class PlanExecute(AgentState):
     response: str
     response_moment: str
     thinker: str
-    list_fonte: Annotated[List[Fonte], operator.add]
+    # list_fonte: Annotated[List[Fonte], operator.add]
+    list_fonte: List[Fonte]
 
 
 class Plan(BaseModel):
@@ -184,19 +185,19 @@ def execute_step(state: PlanExecute):
     #)
 
     agent_response = rag_search_agent.invoke(
-        {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": state["list_fonte"], "summary": ""}
+        {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": state.get("list_fonte", []), "summary": ""}
     )
 
     print("RICERCA: ", len(agent_response["list_fonte"]))
-    summary_response = summary_writing(agent_response["list_fonte"])
+    summary_moment = summary_writing(agent_response["list_fonte"])
 
-    summary_moment = state["response_moment"] + "\n"+"="*80+"\n" +task_formatted.replace("You are", "It is")+ "\n\n"+ summary_response + "\n"+"="*80+"\n"
+    # summary_moment = state["response_moment"] + "\n"+"="*80+"\n" +task_formatted.replace("You are", "It is")+ "\n\n"+ summary_response + "\n"+"="*80+"\n"
 
     if len(state["list_fonte"]) > 25:
         summary_moment = summary_writing_summary(summary_moment)
 
     return {
-        "past_steps": [(task, summary_response)],
+        "past_steps": [(task, summary_moment)],
         "list_fonte": agent_response["list_fonte"],
         "response_moment": summary_moment,
     }
@@ -215,7 +216,8 @@ async def replan_step(state: PlanExecute):
     output = await replanner.ainvoke(state)
 
     if isinstance(output.action, Response):
-        return {"response": output.action.response}
+        output = await response_llm.ainvoke(state)
+        return {"response": output.content}
     else:
         # TODO IN QUESTO CASO FORZARLO A DARE UNA RISPOSTA
         if len(state["past_steps"]) > 5:
@@ -295,7 +297,7 @@ dei corrispettivi riscossi, laddove l'annotazione delle ''bollette/fatture''
 elettronicamente, non determinerebbe alcun effetto di anticipazione dell'esigibilità
 dell'imposta ex art. 6, comma 2, Decreto IVA»."""
         inputs = {"messages": [("user", input)], 
-            "response_moment": "", "input": input}
+            "response_moment": "", "input": input, "list_fonte": []}
 
         async for event in todo_workflow.astream(inputs, config=thread):
             for k, v in event.items():

@@ -124,7 +124,7 @@ def _rag_query_implement(
     print("CITAZIONE FONTE: ", citazione_fonte)
 
     if citazione_fonte.check_presenza:
-        ricerca_norma = _rag_query_norma_specifica(citazione_fonte.anno_norma, citazione_fonte.numero_norma, citazione_fonte.articolo_norma, tool_call_id)
+        ricerca_norma = _rag_query_norma_specifica(citazione_fonte.anno_norma, citazione_fonte.numero_norma, citazione_fonte.articolo_norma, state, tool_call_id)
         liste = ricerca_norma.update["list_fonte"]
 
         for elem in liste:  
@@ -169,10 +169,11 @@ def _rag_query_implement(
 
     for fonte in list_fonte:
         header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
-        corpo = "\n\n".join(fonte.ricostruito_testo)
-        footer = "</Fonte>"
+        #corpo = "\n\n".join(fonte.ricostruito_testo)
+        #footer = "</Fonte>"
 
-        testo += header + "\n" + corpo + "\n" + footer + "\n\n"
+        # testo += header + "\n" + corpo + "\n" + footer + "\n\n"
+        testo += header + "\n"
 
     print("RICOSTRUITO IL TESTO")
     print(len(testo))
@@ -207,8 +208,8 @@ def rag_query(
     """
     return _rag_query_implement(query, tipo, state, tool_call_id)
 
-def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, tool_call_id: str) -> list:
-    list_fonte = []
+def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, state: Annotated[SearchState, InjectedState], tool_call_id: Annotated[str, InjectedToolCallId]) -> list:
+    list_fonte = state["list_fonte"]
 
     elem: Fonte = estrazione_norma_specifica(anno, numero, articolo)
     list_fonte.append(elem)
@@ -218,7 +219,7 @@ def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, tool_call_
     if elem is None:
         return Command(
             update={
-                "list_fonte": [],
+                "list_fonte": list_fonte,
                 "messages": [
                     ToolMessage(
                         f"Non ho trovato la norma specificata: {anno} {numero} {articolo}", tool_call_id=tool_call_id
@@ -229,10 +230,11 @@ def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, tool_call_
 
     for fonte in list_fonte:
         header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
-        corpo = "\n\n".join(fonte.ricostruito_testo)
-        footer = "</Fonte>"
+        #corpo = "\n\n".join(fonte.ricostruito_testo)
+        #footer = "</Fonte>"
 
-        testo += header + "\n" + corpo + "\n" + footer + "\n\n"
+        # testo += header + "\n" + corpo + "\n" + footer + "\n\n"
+        testo += header + "\n"
     
     return Command(
         update={
@@ -251,6 +253,7 @@ def rag_query_norma_specifica(
     anno: str,
     numero: str,
     articolo: str,
+    state: Annotated[SearchState, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> list:
     """Esegue una ricerca specifica sulle norme italiane tramite anno, numero e articolo.
@@ -270,7 +273,7 @@ def rag_query_norma_specifica(
     print("ARTICOLO: ", articolo)
     print("/"*80)
 
-    return _rag_query_norma_specifica(anno, numero, articolo, tool_call_id)
+    return _rag_query_norma_specifica(anno, numero, articolo, state, tool_call_id)
 
 
 def summary_writing(
