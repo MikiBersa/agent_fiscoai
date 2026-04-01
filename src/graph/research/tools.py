@@ -253,10 +253,9 @@ def rag_query_norma_specifica(
 
     return _rag_query_norma_specifica(anno, numero, articolo, tool_call_id)
 
-@tool(parse_docstring=True)
+
 def summary_writing(
-    state: Annotated[SearchState, InjectedState],
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    list_fonte: list[Fonte],
 ) -> str:
     """Questo tool fa un riassunto dettagliato delle informazioni trovate durate la richerca.
 
@@ -269,7 +268,7 @@ def summary_writing(
     print("==== SUMMARY WRITING ====")
     
 
-    list_fonte = state["list_fonte"]
+    # list_fonte = state["list_fonte"]
     testo = ""
 
     for fonte in list_fonte:
@@ -299,16 +298,7 @@ def summary_writing(
 
     summary = summary_agent.invoke({"testo": testo})
 
-    return Command(
-        update={
-            "summary": summary.content,
-            "messages": [
-                ToolMessage(
-                    f"Riassunto della ricerca:\n{summary}", tool_call_id=tool_call_id
-                )
-            ],
-        }
-    )
+    return summary.content
 
 if __name__ == "__main__":
     # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))

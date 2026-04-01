@@ -30,4 +30,3 @@ class Fonte(BaseModel):
 
 class SearchState(AgentState):
     list_fonte: Annotated[list[Fonte], operator.add]
-    summary: str

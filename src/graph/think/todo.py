@@ -38,6 +38,7 @@ from src.graph.think.response import response_llm
 from src.graph.research.search_graph import rag_search_agent
 from src.graph.research.state import Fonte
 from langchain.agents import AgentState
+from src.graph.research.tools import summary_writing
 
 
 class PlanExecute(AgentState):
@@ -177,10 +178,12 @@ async def execute_step(state: PlanExecute):
         {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": state["list_fonte"], "summary": ""}
     )
 
-    summary_moment = state["response_moment"] + "\n"+"="*80+"\n" +task_formatted.replace("You are", "It is")+ "\n\n"+ agent_response["summary"] + "\n"+"="*80+"\n"
+    summary_response = summary_writing(state["list_fonte"])
+
+    summary_moment = state["response_moment"] + "\n"+"="*80+"\n" +task_formatted.replace("You are", "It is")+ "\n\n"+ summary_response + "\n"+"="*80+"\n"
 
     return {
-        "past_steps": [(task, agent_response["summary"])],
+        "past_steps": [(task, summary_response)],
         "list_fonte": agent_response["list_fonte"],
         "response_moment": summary_moment,
     }
@@ -268,7 +271,7 @@ if __name__ == "__main__":
     # display(Image(todo_workflow.get_graph(xray=True).draw_mermaid_png()))
     
     async def main():
-        thread = {"configurable": {"thread_id": "5"}}
+        thread = {"configurable": {"thread_id": "10"}}
         inputs = {"input": """L'Istante, in qualità di titolare di una ditta individuale rappresenta di svolgere
 attività come studio di consulenza per la circolazione dei mezzi di trasporto e
 dichiara che presso lo studio medesimo sono operativi sia lo ''Sportello Telematico
