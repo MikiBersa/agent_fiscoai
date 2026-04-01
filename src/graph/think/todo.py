@@ -159,7 +159,7 @@ replanner = replanner_prompt | AzureChatOpenAI(
 # AGENTE SEMPLICE
 
 
-async def execute_step(state: PlanExecute):
+def execute_step(state: PlanExecute):
     plan = state["plan"]
 
     plan_str = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
@@ -174,7 +174,7 @@ async def execute_step(state: PlanExecute):
     #    {"messages": [("user", task_formatted)]}
     #)
 
-    agent_response = await rag_search_agent.ainvoke(
+    agent_response = rag_search_agent.invoke(
         {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": state["list_fonte"], "summary": ""}
     )
 
@@ -191,7 +191,7 @@ async def execute_step(state: PlanExecute):
 
 async def plan_step(state: PlanExecute):
     plan = await planner.ainvoke({
-        "messages": [("user", state["input"])],
+        "messages": state["messages"],
         "thinker": state.get("thinker", "")
     })
     return {"plan": plan.steps}
@@ -272,32 +272,29 @@ if __name__ == "__main__":
     
     async def main():
         thread = {"configurable": {"thread_id": "10"}}
-        inputs = {"input": """L'Istante, in qualità di titolare di una ditta individuale rappresenta di svolgere
-attività come studio di consulenza per la circolazione dei mezzi di trasporto e
-dichiara che presso lo studio medesimo sono operativi sia lo ''Sportello Telematico
-dell'Automobilista'' (STA), sia lo ''Sportello Telematico del Diportista'' (STED).
-Al riguardo, fa presente di svolgere in via esclusiva l'attività di gestione
-delle pratiche amministrative relative alla nautica da diporto, gran parte delle quali
-rappresentate dai passaggi di proprietà di unità superiori ai 10 metri e, quindi, iscritte
-negli appositi registri.
-Pagina 2 di 8
-L'Istante riferisce che sulla base di quanto previsto dall'articolo 7 del decreto
-legge 4 luglio 2006, n. 223, convertito con modificazioni dalla legge 4 agosto 2006, n.
-248, avente ad oggetto misure urgenti in materia di passaggi di proprietà di beni mobili
-registrati, i passaggi di proprietà delle imbarcazioni da diporto avvengono tramite atti
-sui quali autentica la firma delle parti contraenti, nel rispetto della previsione recata dalla
-disposizione richiamata.
-Atteso che tra i soggetti obbligati a richiedere la registrazione, l'articolo 10 del
-d.P.R. 26 aprile 1986, n. 131, al comma 1, lettera b) contempla «i notai, gli ufficiali
-giudiziari, i segretari o delegati della pubblica amministrazione e gli altri pubblici
-ufficiali per gli atti da essi redatti, ricevuti o autenticati», l'Istante chiede se tra gli stessi
-rientrano anche i titolari di STA e STED relativamente all'autentica apposta sull'atto di
-compravendita del bene mobile registrato.
-In sede di documentazione integrativa, l'Istante ha precisato che dal 2021 è
-operativo l'''Archivio Telematico Centrale'' (ATCN) e «La registrazione, oltre ad essere
-obbligatoria, è, in ogni caso, indispensabile per procedere alle trascrizioni da parte
-dello STED nell'Archivio Telematico Centrale».""", 
-            "response_moment": ""}
+        input = """ALF A], di seguito anche istante, fa presente quanto nel prosieguo sinteticamente
+riportato.
+L'istante è una società in house della Regione [...] ­ costituita il [...] 2003, ai sensi
+dell'articolo 40 della Legge Regionale [...] e successive modifiche ­ posseduta al 53,5%
+dalla stessa Regione e per il restante 46,5% dalla medesima [ALF A].
+A seguito di Deliberazione n. [...] del 2022 ­ con cui si dispone l'affidamento,
+in favore dell'istante, del Servizio Idrico Integrato (''SII'') per i segmenti: captazione
+e adduzione acque potabili, distribuzione, fognatura e depurazione per l'intera
+circoscrizione regionale per un arco temporale di 30 anni, con decorrenza dal 1° gennaio
+Pagina 2 di 5
+2023 ­ con il successivo Accordo operativo di cui al repertorio n. [...] del [...] 2023, la
+società si è, quindi, obbligata nei confronti del Comune [...] ad emettere in nome proprio
+le fatture relative al SII nei confronti dei clienti finali.
+Ciò premesso, l'istante chiede conferma circa «l'applicabilità alla fattispecie in
+esame dell'art. 2 del Decreto [ministeriale 24 ottobre 2000, n. 370, ndr], nella parte
+in cui prevede che, per il servizio di somministrazione di acqua, si possa limitarsi ad
+annotare nel registro dei corrispettivi di cui all'art. 24 del Decreto IVA l'ammontare
+dei corrispettivi riscossi, laddove l'annotazione delle ''bollette/fatture''
+, ancorché emesse
+elettronicamente, non determinerebbe alcun effetto di anticipazione dell'esigibilità
+dell'imposta ex art. 6, comma 2, Decreto IVA»."""
+        inputs = {"messages": [("user", input)], 
+            "response_moment": "", "input": input}
 
         async for event in todo_workflow.astream(inputs, config=thread):
             for k, v in event.items():

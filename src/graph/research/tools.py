@@ -28,6 +28,8 @@ from src.graph.research.state import Fonte, SearchState
 from src.services.embeddings import EmbeddingAzure
 from src.services.qdrant import QdrantHybridRetriever
 from src.graph.research.content_intent import content_intent
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import AzureChatOpenAI
 
 LIMIT_QDRANT_TOP = 10
 
@@ -207,6 +209,18 @@ def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, tool_call_
     list_fonte.append(elem)
 
     testo = ""
+
+    if elem is None:
+        return Command(
+            update={
+                "list_fonte": [],
+                "messages": [
+                    ToolMessage(
+                        f"Non ho trovato la norma specificata: {anno} {numero} {articolo}", tool_call_id=tool_call_id
+                    )
+                ],
+            }
+        )
 
     for fonte in list_fonte:
         header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
