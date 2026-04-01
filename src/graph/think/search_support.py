@@ -5,6 +5,7 @@ from langchain_tavily import TavilySearch
 
 load_dotenv()
 
+
 tools = [TavilySearch(max_results=3)]
 
 # Choose the LLM that will drive the agent

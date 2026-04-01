@@ -1,3 +1,21 @@
+import os
+import sys
+import warnings
+
+# Suppress Pydantic V1 migration warnings in Python 3.14+
+warnings.filterwarnings(
+    "ignore", category=UserWarning, message=".*Pydantic V1 functionality.*"
+)
+
+# Add the project root to sys.path
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+)
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from typing import Annotated, Literal
 
 from langchain_core.messages import ToolMessage
@@ -5,12 +23,13 @@ from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 
-from src.graph.research.estrazione import estrazione_circolari, estrazione_giurisprudenza, estrazione_risoluzione, estrazione_provvedimento
+from src.graph.research.estrazione import estrazione_circolari, estrazione_giurisprudenza, estrazione_risoluzione, estrazione_provvedimento, estrazione_norma_specifica
 from src.graph.research.state import Fonte, SearchState
 from src.services.embeddings import EmbeddingAzure
 from src.services.qdrant import QdrantHybridRetriever
+from src.graph.research.content_intent import content_intent
 
-LIMIT_QDRANT_TOP = 5
+LIMIT_QDRANT_TOP = 10
 
 
 def get_qrant():
@@ -77,11 +96,11 @@ def extractionFonte(formatted_results) -> list[Fonte]:
     return list_fonte
 
 
-@tool(parse_docstring=True)
-def rag_query(
+# @tool(parse_docstring=True)
+def _rag_query_implement(
     query: str,
     tipo: Literal["circolare", "giurisprudenza", "risoluzione", "all"],
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: str,
 ) -> list:
     """Esegue una ricerca nella knowledge base circolari e di prassi (RAG) di Agenzia delle Entrate.
 
@@ -92,10 +111,20 @@ def rag_query(
     Returns:
         I risultati della ricerca formattati come testo leggibile.
     """
+    list_fonte = []
     print("==== RICERCA RAG =====")
     print(query)
 
     retriever = get_qrant()
+
+    # INSERIRE LA LOGICA PER ESTRARRE ANNO, NUMERO E ARTICOLO DALLA QUERY
+    citazione_fonte = content_intent.invoke({"text": query})
+    print("CITAZIONE FONTE: ", citazione_fonte)
+
+    if citazione_fonte.check_presenza:
+        ricerca_norma = _rag_query_norma_specifica(citazione_fonte.anno_norma, citazione_fonte.numero_norma, citazione_fonte.articolo_norma, tool_call_id)
+        liste = ricerca_norma.update["list_fonte"]
+        list_fonte.extend(liste)
 
     # Configuro il filtro in base al tipo richiesto
     print("RICERCA CON TIPO: ", tipo)
@@ -112,7 +141,7 @@ def rag_query(
         formatted_results = retriever.format_results(search_results)
 
         # TODO ANALIZZARE IL FORMATO ED ESPANDERE CON MONGODB
-        list_fonte = extractionFonte(formatted_results)
+        list_fonte.extend(extractionFonte(formatted_results))
 
         print("RITORNO ELEM")
     except Exception as e:
@@ -153,3 +182,113 @@ def rag_query(
             ],
         }
     )
+
+@tool(parse_docstring=True)
+def rag_query(
+    query: str,
+    tipo: Literal["circolare", "giurisprudenza", "risoluzione", "all"],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> list:
+    """Esegue una ricerca nella knowledge base normativa e di prassi (RAG) di Agenzia delle Entrate.
+
+    Args:
+        query: Testo della ricerca in linguaggio naturale (es. "detrazione ristrutturazioni edilizie").
+        tipo: Tipologia di documenti su cui filtrare la ricerca. Usa 'circolare' per le circolari, 'giurisprudenza' per la giurisprudenza, 'risoluzione' per le risoluzioni e 'all' per cercare ovunque.
+
+    Returns:
+        I risultati della ricerca formattati come testo leggibile.
+    """
+    return _rag_query_implement(query, tipo, tool_call_id)
+
+def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, tool_call_id: str) -> list:
+    list_fonte = []
+
+    elem: Fonte = estrazione_norma_specifica(anno, numero, articolo)
+    list_fonte.append(elem)
+
+    testo = ""
+
+    for fonte in list_fonte:
+        header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
+        corpo = "\n\n".join(fonte.ricostruito_testo)
+        footer = "</Fonte>"
+
+        testo += header + "\n" + corpo + "\n" + footer + "\n\n"
+    
+    return Command(
+        update={
+            "list_fonte": list_fonte,
+            "messages": [
+                ToolMessage(
+                    f"Informazioni trovate:\n{testo}", tool_call_id=tool_call_id
+                )
+            ],
+        }
+    )
+
+# TODO FARE RICERCA EFFETTIVA CON NOME_ID
+@tool(parse_docstring=True)
+def rag_query_norma_specifica(
+    anno: str,
+    numero: str,
+    articolo: str,
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> list:
+    """Esegue una ricerca specifica sulle norme italiane tramite anno, numero e articolo.
+    Da usare quando si vuole fare una ricerca di una norma specifica ed estrapolare intero testo.
+
+    Args:
+        anno: Anno di riferimento della norma.
+        numero: Numero della norma.
+        articolo: Articolo della norma.
+
+    Returns:
+        I risultati della ricerca formattati come testo leggibile.
+    """
+    print("RICERCA NORMA SPECIFICA")
+    print("ANNO: ", anno)
+    print("NUMERO: ", numero)
+    print("ARTICOLO: ", articolo)
+    print("/"*80)
+
+    return _rag_query_norma_specifica(anno, numero, articolo, tool_call_id)
+
+
+if __name__ == "__main__":
+    # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
+
+    result = _rag_query_implement(
+        """L'Istante, condomino di un ''condominio minimo'' situato nel territorio della
+Regione X composto da n. 5 unità immobiliari, unitamente agli altri proprietari
+e comodatari, ha deliberato e incaricato una ditta edile di effettuare interventi di
+efficientamento energetico di cui all'articolo 119 del decreto legge n. 34 del 2020 (cd.
+Superbonus), con conseguente presentazione della CILAS in data 15 aprile 2022.
+L'Istante rappresenta che intende sostituire (come intervento ''trainato'') le
+finestre e persiane ''ad arco'' dell'intero edificio con il mantenimento della stessa forma e
+che, al momento della firma del contratto di appalto avvenuto ad aprile 2022, il prezzario
+della Regione X non contemplava tale tipologia di infisso e, pertanto, è stato utilizzato
+il prezzario della ''vicina'' Regione Y edizione 2021 che, invece, la prevedeva.
+L'Istante fa presente che la sostituzione delle finestre e persiane è attualmente in
+corso e che, nel frattempo, la Regione X ha aggiornato il prezzario includendovi anche
+i prezzi riferiti alla sostituzione delle persiane e delle finestre ''ad arco''.
+Con documentazione integrativa l'Istante ha specificato che per l'intervento
+complessivo prospettato è stato completato il primo SAL, in data 2 maggio 2023, e che
+il secondo e ultimo SAL, nel quale confluirà anche l'intervento trainato di sostituzione
+delle finestre e persiane, è in corso. Lo stesso ha altresì rappresentato che i condomini
+hanno optato per l'applicazione del cd. ''sconto in fattura''.
+Ciò premesso, l'Istante chiede quale prezzario deve essere utilizzato per la verifica
+della congruità dei prezzi prevista dall'articolo 119, comma 13, del decreto legge n. 34
+del 2020.""",
+        "circolare",
+        "call_Y2n39j40QBFaAK6VzlrYPww4",
+    )
+
+    # format_messages(result["messages"])
+
+    # print("=" * 80)
+    # print(len(result["list_fonte"]))
+    liste = result.update["list_fonte"]
+    for fonte in liste:
+        print(fonte.id)
+        
+

@@ -77,8 +77,14 @@ class MongoDBConnection:
 
         return doc
 
-    def get_chunks(self, procet={}, filtro={}):
-        return self.collection.find(filtro, procet)
+    def get_chunks(self, procet={}, filtro={}, index = ""):
+        if index != "":
+            return self.collection.find(filtro, procet).hint(index)
+        else:
+            return self.collection.find(filtro, procet)
 
     def count_chunks(self, filtro={}):
         return self.collection.count_documents(filtro)
+
+    def get_norma_specifica(self, filtro={},  procet={}, index = ""):
+            return self.collection.find_one(filtro, procet)

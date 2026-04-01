@@ -35,6 +35,7 @@ from src.graph.think.search_support import search_agent
 from src.graph.think.thinker import thinker
 from utils.format import format_messages
 from src.graph.think.response import response_llm
+from src.graph.research.search_graph import rag_search_agent
 
 
 class PlanExecute(TypedDict):
@@ -162,8 +163,12 @@ async def execute_step(state: PlanExecute):
     task_formatted = f"""For the following plan:
     {plan_str}\n\nYou are tasked with executing step {1}, {task}."""
 
-    agent_response = await search_agent.ainvoke(
-        {"messages": [("user", task_formatted)]}
+    #agent_response = await search_agent.ainvoke(
+    #    {"messages": [("user", task_formatted)]}
+    #)
+
+    agent_response = await rag_search_agent.ainvoke(
+        {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": [],}
     )
 
     return {
@@ -220,6 +225,7 @@ workflow.add_node("agent", execute_step)
 # Add a replan node
 workflow.add_node("replan", replan_step)
 
+# STRUTTURA DEL GRAFO
 workflow.add_edge(START, "pre_thinker")
 
 workflow.add_edge("pre_thinker", "planner")
@@ -253,7 +259,28 @@ if __name__ == "__main__":
 
     async def main():
         thread = {"configurable": {"thread_id": "2"}}
-        inputs = {"input": "Ho ricevuto le informazioni necessarie per procedere: si tratta di una rilevazione in bilancio d'esercizio secondo OIC, riguardante ricavi da affitti non fatturati dopo l'attivazione di una composizione negoziata per crisi d'impresa. Procederò ora alla ricerca e analisi normativa per fornirti una risposta precisa."}
+        inputs = {"input": """L'Istante, condomino di un ''condominio minimo'' situato nel territorio della
+Regione X composto da n. 5 unità immobiliari, unitamente agli altri proprietari
+e comodatari, ha deliberato e incaricato una ditta edile di effettuare interventi di
+efficientamento energetico di cui all'articolo 119 del decreto legge n. 34 del 2020 (cd.
+Superbonus), con conseguente presentazione della CILAS in data 15 aprile 2022.
+L'Istante rappresenta che intende sostituire (come intervento ''trainato'') le
+finestre e persiane ''ad arco'' dell'intero edificio con il mantenimento della stessa forma e
+che, al momento della firma del contratto di appalto avvenuto ad aprile 2022, il prezzario
+Pagina 2 di 5
+della Regione X non contemplava tale tipologia di infisso e, pertanto, è stato utilizzato
+il prezzario della ''vicina'' Regione Y edizione 2021 che, invece, la prevedeva.
+L'Istante fa presente che la sostituzione delle finestre e persiane è attualmente in
+corso e che, nel frattempo, la Regione X ha aggiornato il prezzario includendovi anche
+i prezzi riferiti alla sostituzione delle persiane e delle finestre ''ad arco''.
+Con documentazione integrativa l'Istante ha specificato che per l'intervento
+complessivo prospettato è stato completato il primo SAL, in data 2 maggio 2023, e che
+il secondo e ultimo SAL, nel quale confluirà anche l'intervento trainato di sostituzione
+delle finestre e persiane, è in corso. Lo stesso ha altresì rappresentato che i condomini
+hanno optato per l'applicazione del cd. ''sconto in fattura''.
+Ciò premesso, l'Istante chiede quale prezzario deve essere utilizzato per la verifica
+della congruità dei prezzi prevista dall'articolo 119, comma 13, del decreto legge n. 34
+del 2020."""}
 
         async for event in todo_workflow.astream(inputs, config=thread):
             for k, v in event.items():

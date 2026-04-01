@@ -115,7 +115,11 @@ def estrazione_circolari(result):
     fonte["id"] = str(circolare_original["id"])
     fonte["data"] = str(circolare_original["info"]["data"])
     fonte["original_text"] = "\n\n".join(circolare_original["info"]["pagine"])
-    fonte["url"] = str(circolare_original["url"])
+    
+    if "url" in circolare_original:
+        fonte["url"] = str(circolare_original["url"])
+    else:
+        fonte["url"] = ""
 
     # print("=====")
 
@@ -135,6 +139,7 @@ def estrazione_circolari(result):
     circolare_chunks = mongodb.get_chunks(
         filtro={"id": nome_id, "num_chunk": {"$in": array_chunk}},
         procet={"text": 1},
+        index="index_nome_id"
     )
 
     """
@@ -216,6 +221,7 @@ def estrazione_giurisprudenza(result):
     giurisprudenza_chunks = mongodb.get_chunks(
         filtro={"nome_id": nome_id, "chunk_number": {"$in": array_chunk}},
         procet={"text": 1},
+        index="index_nome_id"
     )
 
     """
@@ -296,6 +302,7 @@ def estrazione_risoluzione(result):
     risoluzione_chunks = mongodb.get_chunks(
         filtro={"id": nome_id, "num_chunk": {"$in": array_chunk}},
         procet={"text": 1},
+        index="index_nome_id"
     )
 
     """
@@ -376,6 +383,7 @@ def estrazione_provvedimento(result):
     provvedimento_chunks = mongodb.get_chunks(
         filtro={"id": nome_id, "num_chunk": {"$in": array_chunk}},
         procet={"text": 1},
+        index="index_nome_id"
     )
 
     """
@@ -397,6 +405,65 @@ def estrazione_provvedimento(result):
     )
     return fonte
 
+
+def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
+    fonte = {
+        "mongo_id": "",
+        "id": "",
+        "original_text": "",
+        "ricostruito_testo": "",
+        "tipo": "norma",
+        "score": 0.0,
+        "data": "",
+        "cites": [],
+    }
+    
+    mongodb = MongoDBConnection()
+    mongodb.connection()
+    mongodb.set_collection("normattiva_original")
+
+    norma_original = mongodb.get_norma_specifica(
+        filtro={
+            "nome_id": {
+                "$regex": fr"[A-Z]+{numero}(?!\d).*{anno}(?!\d)"
+            }
+        },
+        procet={"nome_id": 1, "data": 1, "article": 1, "text": 1, "url": 1},
+        index="index_nome_id"
+    )
+
+    testo = ""
+    for article in norma_original["article"]:
+        if articolo in article["articolo_num"]:
+            testo = article["testo"]
+            break
+
+    fonte["mongo_id"] = str(norma_original["_id"])
+    fonte["id"] = str(norma_original["nome_id"])
+    fonte["data"] = str(norma_original["data"]) 
+    
+    if testo == "":
+        fonte["original_text"] = "\n\n".join(norma_original["text"])
+    else:
+        fonte["original_text"] = testo
+
+    fonte["url"] = str(norma_original["url"])
+
+    fonte = Fonte(
+        mongo_id=fonte["mongo_id"],
+        id=fonte["id"],
+        original_text=fonte["original_text"],
+        tipo=fonte["tipo"],
+        score=0.0,
+        data=fonte["data"],
+        ricostruito_testo=[fonte["original_text"]],
+        url=fonte["url"],
+        cites=[],
+    )
+    return fonte
+
+
+    
 
 if __name__ == "__main__":
     print("CIRCOLARE")
@@ -422,6 +489,13 @@ if __name__ == "__main__":
 
     print("PROVVEDIMENTI")
     elem: Fonte = estrazione_provvedimento({"id": "6843ff8e803b4a91b05dbb6c"})
+
+    for elem_ in elem.ricostruito_testo:
+        print(elem_[:30])
+        print("=" * 80)
+
+    print("NORMA")
+    elem: Fonte = estrazione_norma_specifica("2024", "146", "2")
 
     for elem_ in elem.ricostruito_testo:
         print(elem_[:30])
