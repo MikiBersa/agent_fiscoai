@@ -317,6 +317,86 @@ def estrazione_risoluzione(result):
     )
     return fonte
 
+def estrazione_provvedimento(result):
+    fonte = {
+        "mongo_id": "",
+        "id": "",
+        "original_text": "",
+        "ricostruito_testo": "",
+        "tipo": "provvedimento",
+        "score": 0.0,
+        "data": "",
+        "cites": [],
+    }
+
+    mongodb = MongoDBConnection()
+    mongodb.connection()
+    mongodb.set_collection("provvedimenti_chunk")
+
+    id = result["id"]
+
+    provvedimento_chunk = mongodb.get_chunk(
+        filtro={"_id": ObjectId(id)},
+        procet={"original_id": 1, "text": 1, "num_chunk": 1, "id": 1},
+    )
+
+    nome_id = provvedimento_chunk["id"]
+
+    # 1) ritorno del padre
+
+    mongodb.set_collection("provvedimenti_original")
+    provvedimento_original = mongodb.get_chunk(
+        filtro={"_id": provvedimento_chunk["original_id"]},
+        procet={"id": 1, "url": 1, "data": 1, "pages_ocr": 1},
+    )
+
+    # print(circolare_original)
+
+    fonte["mongo_id"] = str(provvedimento_original["_id"])
+    fonte["id"] = str(provvedimento_original["id"])
+    fonte["data"] = str(provvedimento_original["data"])
+    fonte["original_text"] = "\n\n".join(provvedimento_original["pages_ocr"])
+    fonte["url"] = str(provvedimento_original["url"])
+
+    # print("=====")
+
+    # 2) espansione a paragrafo
+    mongodb.set_collection("provvedimenti_chunk")
+
+    num_total = mongodb.count_chunks(filtro={"id": nome_id})
+
+    print("NOME ID: ", nome_id, num_total)
+
+    # print("=====: ", num_total)
+
+    array_chunk = build_chunk_window(provvedimento_chunk["num_chunk"], num_total)
+
+    print(array_chunk)
+
+    provvedimento_chunks = mongodb.get_chunks(
+        filtro={"id": nome_id, "num_chunk": {"$in": array_chunk}},
+        procet={"text": 1},
+    )
+
+    """
+    3) espansione citazioni
+    5) controllare doppioni dopo
+    """
+
+    #  4) costruzione dell'oggetto
+    fonte = Fonte(
+        mongo_id=fonte["mongo_id"],
+        id=fonte["id"],
+        original_text=fonte["original_text"],
+        tipo=fonte["tipo"],
+        score=0.0,
+        data=fonte["data"],
+        ricostruito_testo=[elem["text"] for elem in provvedimento_chunks],
+        url=fonte["url"],
+        cites=[],
+    )
+    return fonte
+
 
 if __name__ == "__main__":
     print("CIRCOLARE")
@@ -335,6 +415,13 @@ if __name__ == "__main__":
 
     print("RISOLUZIONI")
     elem: Fonte = estrazione_risoluzione({"id": "67f44fd5dd2da090401d31c4"})
+
+    for elem_ in elem.ricostruito_testo:
+        print(elem_[:30])
+        print("=" * 80)
+
+    print("PROVVEDIMENTI")
+    elem: Fonte = estrazione_provvedimento({"id": "6843ff8e803b4a91b05dbb6c"})
 
     for elem_ in elem.ricostruito_testo:
         print(elem_[:30])
