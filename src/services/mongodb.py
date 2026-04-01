@@ -69,7 +69,7 @@ class MongoDBConnection:
 
         return docs
 
-    def get_circolare_chunk(self, procet={}, filtro={}):
+    def get_chunk(self, procet={}, filtro={}):
         if procet == {}:
             doc = self.collection.find_one(filtro)
         else:
@@ -77,8 +77,8 @@ class MongoDBConnection:
 
         return doc
 
-    def get_circolare_chunks(self, procet={}, filtro={}):
+    def get_chunks(self, procet={}, filtro={}):
         return self.collection.find(filtro, procet)
 
-    def count_circolare_chunks(self, filtro={}):
+    def count_chunks(self, filtro={}):
         return self.collection.count_documents(filtro)

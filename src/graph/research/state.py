@@ -12,6 +12,7 @@ class CitedFonte(BaseModel):
     tipo: str
     score: float
     data: str
+    url: str
 
 
 class Fonte(BaseModel):
@@ -22,6 +23,7 @@ class Fonte(BaseModel):
     tipo: str
     score: float
     data: str
+    url: str
     cites: list[CitedFonte]
 
 

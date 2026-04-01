@@ -5,12 +5,12 @@ from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 
-from src.graph.research.estrazione import estrazione_circolari
+from src.graph.research.estrazione import estrazione_circolari, estrazione_giurisprudenza, estrazione_risoluzione
 from src.graph.research.state import Fonte, SearchState
 from src.services.embeddings import EmbeddingAzure
 from src.services.qdrant import QdrantHybridRetriever
 
-LIMIT_QDRANT_TOP = 2
+LIMIT_QDRANT_TOP = 5
 
 
 def get_qrant():
@@ -28,8 +28,30 @@ def extractionFonte(formatted_results) -> list[Fonte]:
     nome_id = set()
     list_fonte = []
     for result in formatted_results:
+        print("TIPO: ", result["tipo"])
         if result["tipo"] == "circolare":
             fonte: Fonte = estrazione_circolari(result)
+
+            if fonte.id not in nome_id:
+                nome_id.add(fonte.id)
+                list_fonte.append(fonte)
+            else:
+                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                for elem in list_fonte:
+                    elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+        elif result["tipo"] == "giurisprudenza":
+            fonte: Fonte = estrazione_giurisprudenza(result)
+
+            if fonte.id not in nome_id:
+                nome_id.add(fonte.id)
+                list_fonte.append(fonte)
+            else:
+                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                for elem in list_fonte:
+                    elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+
+        elif result["tipo"] == "risoluzione":
+            fonte: Fonte = estrazione_risoluzione(result)
 
             if fonte.id not in nome_id:
                 nome_id.add(fonte.id)
@@ -47,14 +69,14 @@ def extractionFonte(formatted_results) -> list[Fonte]:
 @tool(parse_docstring=True)
 def rag_query(
     query: str,
-    tipo: Literal["circolare"],
+    tipo: Literal["circolare", "giurisprudenza", "risoluzione", "all"],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> list:
     """Esegue una ricerca nella knowledge base circolari e di prassi (RAG) di Agenzia delle Entrate.
 
     Args:
         query: Testo della ricerca in linguaggio naturale (es. "detrazione ristrutturazioni edilizie").
-        tipo: Tipologia di documenti su cui filtrare la ricerca. Usare 'all' per cercare ovunque.
+        tipo: Tipologia di documenti su cui filtrare la ricerca. Usa 'circolare' per le circolari, 'giurisprudenza' per la giurisprudenza, 'risoluzione' per le risoluzioni e 'all' per cercare ovunque.
 
     Returns:
         I risultati della ricerca formattati come testo leggibile.
@@ -65,10 +87,11 @@ def rag_query(
     retriever = get_qrant()
 
     # Configuro il filtro in base al tipo richiesto
+    print("RICERCA CON TIPO: ", tipo)
     query_filter = None
-    # if tipo != "all":
-    #    query_filter = retriever.build_filter(tipo=tipo)
-    query_filter = retriever.build_filter(tipo="circolare")
+    if tipo != "all":
+        query_filter = retriever.build_filter(tipo=tipo)
+    # query_filter = retriever.build_filter(tipo=tipo)
 
     # Eseguo la ricerca (ibrida densa + sparsa)
     try:
@@ -96,6 +119,8 @@ def rag_query(
 
     # RITORNA IL TESTO TOTALE
     testo = ""
+
+    print("LUNGHEZZA DELLE LISTE: ", len(list_fonte))
 
     for fonte in list_fonte:
         header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
