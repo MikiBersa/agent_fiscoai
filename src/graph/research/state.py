@@ -29,4 +29,5 @@ class Fonte(BaseModel):
 
 
 class SearchState(AgentState):
-    list_fonte: Annotated[list[Fonte], operator.add]
+    list_fonte: list[Fonte]
+    # list_fonte: Annotated[list[Fonte], operator.add]

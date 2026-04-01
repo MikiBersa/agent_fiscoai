@@ -17,6 +17,7 @@ Hai accesso al seguente tool:
    Usalo per interrogare la base documentale.  
    Il tool richiede:
    - **query**: la richiesta di ricerca formulata in modo chiaro e mirato; deve essere una domanda o caso ampio per ottimizzare la ricerca hybrid (sparse embedding + dense bm25)
+   Riporta il task da eseguire la query deve essere almeno dai 3 alle 5 frasi per ottimizzare la ricerca ad ambedding e keyword. Quindi non riscrivere il task in altra forma.
    - **tipo**: il tipo di riferimento o categoria della fonte da interrogare. Le categorie sono: "circolare", "risoluzione", "giurisprudenza", "all"
 
 Devi scegliere con attenzione sia la query sia il tipo di riferimento in base a ciò che l'utente sta chiedendo.

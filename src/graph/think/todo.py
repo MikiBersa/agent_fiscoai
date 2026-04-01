@@ -38,7 +38,7 @@ from src.graph.think.response import response_llm
 from src.graph.research.search_graph import rag_search_agent
 from src.graph.research.state import Fonte
 from langchain.agents import AgentState
-from src.graph.research.tools import summary_writing
+from src.graph.research.tools import summary_writing, summary_writing_summary
 
 
 class PlanExecute(AgentState):
@@ -88,6 +88,13 @@ THINKER ANALYSIS
 {thinker}   
 ---------------------
 
+User-posted question:
+<QUESTION>
+{input}
+</QUESTION>
+
+At each step you must take the original question but write it differently based on what you need to research or delve into.
+
 Instructions:
 
 1. Carefully read and incorporate the THINKER analysis:
@@ -115,9 +122,7 @@ Output format:
 - Numbered list of steps
 - No explanations outside the steps
 - Keep it concise but complete
-
-Messages:
-{messages}
+- Use Italian language
 """
 )
 
@@ -144,6 +149,10 @@ replanner_prompt = ChatPromptTemplate.from_template(
     Think about:
     {thinker}
 
+    At each step you must take the original question but write it differently based on what you need to research or delve into.
+    - Use Italian language
+    - Do not add steps that have already been done
+    
     Update your plan accordingly. If no more steps are needed and you can return to the user, then respond with that. Otherwise, fill out the plan. Only add steps to the plan that still NEED to be done. Do not return previously done steps as part of the plan."""
 )
 
@@ -178,9 +187,13 @@ def execute_step(state: PlanExecute):
         {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": state["list_fonte"], "summary": ""}
     )
 
-    summary_response = summary_writing(state["list_fonte"])
+    print("RICERCA: ", len(agent_response["list_fonte"]))
+    summary_response = summary_writing(agent_response["list_fonte"])
 
     summary_moment = state["response_moment"] + "\n"+"="*80+"\n" +task_formatted.replace("You are", "It is")+ "\n\n"+ summary_response + "\n"+"="*80+"\n"
+
+    if len(state["list_fonte"]) > 25:
+        summary_moment = summary_writing_summary(summary_moment)
 
     return {
         "past_steps": [(task, summary_response)],
@@ -191,8 +204,7 @@ def execute_step(state: PlanExecute):
 
 async def plan_step(state: PlanExecute):
     plan = await planner.ainvoke({
-        "messages": state["messages"],
-        "thinker": state.get("thinker", "")
+        "thinker": state.get("thinker", ""), "input": state["input"]
     })
     return {"plan": plan.steps}
 
@@ -218,9 +230,10 @@ def should_end(state: PlanExecute):
     else:
         return "agent"
 
-# TODO METTERE QUI IL TESTO
+# METTERE QUI IL TESTO
 async def thinker_step(state: PlanExecute):
-    thinker_response = await thinker.ainvoke({"messages": state["messages"], "response_moment": state["response_moment"]})
+    print("LEN POST STEPS", len(state["past_steps"]))
+    thinker_response = await thinker.ainvoke({"response_moment": state["response_moment"], "input": state["input"]})
     return {"thinker": thinker_response.content}
 
 
@@ -228,27 +241,15 @@ workflow = StateGraph(PlanExecute)
 
 workflow.add_node("pre_thinker", thinker_step)
 workflow.add_node("post_thinker", thinker_step)
-
-# Add the plan node
 workflow.add_node("planner", plan_step)
-
-# Add the execution step
 workflow.add_node("agent", execute_step)
-
-# Add a replan node
 workflow.add_node("replan", replan_step)
 
 # STRUTTURA DEL GRAFO
 workflow.add_edge(START, "pre_thinker")
-
 workflow.add_edge("pre_thinker", "planner")
-
-# From plan we go to agent
 workflow.add_edge("planner", "agent")
-
 workflow.add_edge("agent", "post_thinker")
-
-# From agent, we replan
 workflow.add_edge("post_thinker", "replan")
 
 workflow.add_conditional_edges(
@@ -271,7 +272,7 @@ if __name__ == "__main__":
     # display(Image(todo_workflow.get_graph(xray=True).draw_mermaid_png()))
     
     async def main():
-        thread = {"configurable": {"thread_id": "10"}}
+        thread = {"configurable": {"thread_id": "12"}}
         input = """ALF A], di seguito anche istante, fa presente quanto nel prosieguo sinteticamente
 riportato.
 L'istante è una società in house della Regione [...] ­ costituita il [...] 2003, ai sensi

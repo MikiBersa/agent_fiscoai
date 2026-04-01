@@ -45,9 +45,8 @@ def get_qrant():
     return retriever
 
 
-def extractionFonte(formatted_results) -> list[Fonte]:
-    nome_id = set()
-    list_fonte = []
+def extractionFonte(formatted_results, list_fonte: list[Fonte]) -> list[Fonte]:
+    nome_id = set([fonte.id for fonte in list_fonte])
     for result in formatted_results:
         print("TIPO: ", result["tipo"])
         if result["tipo"] == "circolare":
@@ -102,7 +101,8 @@ def extractionFonte(formatted_results) -> list[Fonte]:
 def _rag_query_implement(
     query: str,
     tipo: Literal["circolare", "giurisprudenza", "risoluzione", "all"],
-    tool_call_id: str,
+    state: Annotated[SearchState, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> list:
     """Esegue una ricerca nella knowledge base circolari e di prassi (RAG) di Agenzia delle Entrate.
 
@@ -113,7 +113,7 @@ def _rag_query_implement(
     Returns:
         I risultati della ricerca formattati come testo leggibile.
     """
-    list_fonte = []
+    list_fonte = state["list_fonte"]
     print("==== RICERCA RAG =====")
     print(query)
 
@@ -126,7 +126,10 @@ def _rag_query_implement(
     if citazione_fonte.check_presenza:
         ricerca_norma = _rag_query_norma_specifica(citazione_fonte.anno_norma, citazione_fonte.numero_norma, citazione_fonte.articolo_norma, tool_call_id)
         liste = ricerca_norma.update["list_fonte"]
-        list_fonte.extend(liste)
+
+        for elem in liste:  
+            if elem.id not in [fonte.id for fonte in list_fonte]:
+                list_fonte.append(elem)
 
     # Configuro il filtro in base al tipo richiesto
     print("RICERCA CON TIPO: ", tipo)
@@ -142,8 +145,8 @@ def _rag_query_implement(
         )
         formatted_results = retriever.format_results(search_results)
 
-        # TODO ANALIZZARE IL FORMATO ED ESPANDERE CON MONGODB
-        list_fonte.extend(extractionFonte(formatted_results))
+        # ANALIZZARE IL FORMATO ED ESPANDERE CON MONGODB
+        list_fonte = extractionFonte(formatted_results, list_fonte)
 
         print("RITORNO ELEM")
     except Exception as e:
@@ -174,6 +177,7 @@ def _rag_query_implement(
     print("RICOSTRUITO IL TESTO")
     print(len(testo))
 
+    # TODO TOGLIERE TUTTI I MESSAGES
     return Command(
         update={
             "list_fonte": list_fonte,
@@ -189,18 +193,19 @@ def _rag_query_implement(
 def rag_query(
     query: str,
     tipo: Literal["circolare", "giurisprudenza", "risoluzione", "all"],
+    state: Annotated[SearchState, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> list:
     """Esegue una ricerca nella knowledge base normativa e di prassi (RAG) di Agenzia delle Entrate.
 
     Args:
-        query: Testo della ricerca in linguaggio naturale (es. "detrazione ristrutturazioni edilizie").
+        query: Testo della ricerca in linguaggio naturale (es. "detrazione ristrutturazioni edilizie"). Riporta il task da eseguire la query deve essere almeno dai 3 alle 5 frasi per ottimizzare la ricerca ad ambedding e keyword.
         tipo: Tipologia di documenti su cui filtrare la ricerca. Usa 'circolare' per le circolari, 'giurisprudenza' per la giurisprudenza, 'risoluzione' per le risoluzioni e 'all' per cercare ovunque.
 
     Returns:
         I risultati della ricerca formattati come testo leggibile.
     """
-    return _rag_query_implement(query, tipo, tool_call_id)
+    return _rag_query_implement(query, tipo, state, tool_call_id)
 
 def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, tool_call_id: str) -> list:
     list_fonte = []
@@ -296,7 +301,7 @@ def summary_writing(
         """
         Sei un esperto di diritto tributario italiano.
         Il tuo compito è fare un riassunto dettagliato delle informazioni trovate durate la richerca.
-        Ripoorta le infromazioni più fedelmente possibile al testo originale.
+        Ripoorta le infromazioni riassumento quindi estrarre i concetti più importanti.
         
         <TESTO DA ANALIZZARE>
         {testo}
@@ -307,10 +312,46 @@ def summary_writing(
     summary_agent = summary_prompt | AzureChatOpenAI(
         azure_deployment="gpt-4.1-mini",
         api_version="2024-12-01-preview",
-        # max_tokens=1000,
+        max_tokens=1000,
     )
 
     summary = summary_agent.invoke({"testo": testo})
+
+    return summary.content
+
+def summary_writing_summary(
+    summary: str,
+) -> str:
+    """Questo tool fa un riassunto dettagliato delle informazioni trovate durate la richerca.
+
+    Args:
+
+    Returns:
+        I risultati della ricerca formattati come testo leggibile.
+    """
+
+    print("==== SUMMARY WRITING SUMMARY ====")
+
+    
+    summary_prompt = ChatPromptTemplate.from_template(
+        """
+        Sei un esperto di diritto tributario italiano.
+        Il tuo compito è fare un riassunto dettagliato delle informazioni trovate durate la richerca.
+        Ripoorta le infromazioni riassumento quindi estrarre i concetti più importanti.
+        
+        <TESTO DA ANALIZZARE>
+        {testo}
+        </TESTO DA ANALIZZARE>
+        """
+    )
+
+    summary_agent = summary_prompt | AzureChatOpenAI(
+        azure_deployment="gpt-4.1-mini",
+        api_version="2024-12-01-preview",
+        max_tokens=1000,
+    )
+
+    summary = summary_agent.invoke({"testo": summary})
 
     return summary.content
 

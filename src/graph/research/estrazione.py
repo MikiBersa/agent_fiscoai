@@ -151,7 +151,8 @@ def estrazione_circolari(result):
     fonte = Fonte(
         mongo_id=fonte["mongo_id"],
         id=fonte["id"],
-        original_text=fonte["original_text"],
+        # original_text=fonte["original_text"],
+        original_text="",
         tipo=fonte["tipo"],
         score=0.0,
         data=fonte["data"],
@@ -233,7 +234,8 @@ def estrazione_giurisprudenza(result):
     fonte = Fonte(
         mongo_id=fonte["mongo_id"],
         id=fonte["id"],
-        original_text=fonte["original_text"],
+        # original_text=fonte["original_text"],
+        original_text="",
         tipo=fonte["tipo"],
         score=0.0,
         data=fonte["data"],
@@ -314,7 +316,8 @@ def estrazione_risoluzione(result):
     fonte = Fonte(
         mongo_id=fonte["mongo_id"],
         id=fonte["id"],
-        original_text=fonte["original_text"],
+        # original_text=fonte["original_text"],
+        original_text="",
         tipo=fonte["tipo"],
         score=0.0,
         data=fonte["data"],
@@ -395,7 +398,8 @@ def estrazione_provvedimento(result):
     fonte = Fonte(
         mongo_id=fonte["mongo_id"],
         id=fonte["id"],
-        original_text=fonte["original_text"],
+        # original_text=fonte["original_text"],
+        original_text="",
         tipo=fonte["tipo"],
         score=0.0,
         data=fonte["data"],
@@ -455,7 +459,8 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
     fonte = Fonte(
         mongo_id=fonte["mongo_id"],
         id=fonte["id"],
-        original_text=fonte["original_text"],
+        # original_text=fonte["original_text"],
+        original_text="",
         tipo=fonte["tipo"],
         score=0.0,
         data=fonte["data"],

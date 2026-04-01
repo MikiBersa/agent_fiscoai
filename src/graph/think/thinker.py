@@ -227,18 +227,17 @@ Il tuo ruolo è quindi quello di **pensare a fondo, scomporre bene, controllare 
 thinker_prompt = ChatPromptTemplate.from_template(
     SYSTEM_PROMPT +
     """
-
+    Quesito della ricerca, devi analizzaree il quesito e le informazioni ottenute finora, per fare una giusta pianificazione:
+    <QUESITO>
+    {input}
+    </QUESITO>
+    
     Devi prendere le prossime decisioni in base alle infromazioni che ti vengono date ora.
     Quindi devi pianificare quale ricerche fare successivamente.
 
     <Informazioni ATTUALE>
     {response_moment}
     </Informazioni ATTUALE>
-    
-    Ti riporto anche i messaggi scambiati finora:
-    <MESSAGGI>
-    {messages}
-    </MESSAGGI>
     """
 )
 
