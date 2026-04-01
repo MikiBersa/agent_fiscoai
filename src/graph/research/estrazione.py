@@ -442,6 +442,7 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
     testo = ""
     for article in norma_original["article"]:
         if articolo in article["articolo_num"]:
+            print("**** TROVATO ARTICOLO: ", article["articolo_num"], articolo, "****")
             testo = article["testo"]
             break
 
@@ -450,9 +451,9 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
     fonte["data"] = str(norma_original["data"]) 
     
     if testo == "":
-        fonte["original_text"] = "\n\n".join(norma_original["text"])
+        fonte["original_text"] = "\n\n".join(norma_original["text"])[:250]
     else:
-        fonte["original_text"] = testo
+        fonte["original_text"] = testo[:250]
 
     fonte["url"] = str(norma_original["url"])
 

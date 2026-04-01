@@ -28,6 +28,25 @@ class Fonte(BaseModel):
     cites: list[CitedFonte]
 
 
+def reduce_fonti(left: list[Fonte] | None, right: list[Fonte] | None) -> list[Fonte]:
+    if left is None:
+        left = []
+    if right is None:
+        right = []
+
+    # Unisci deduplicando per id
+    fonti_dict = {f.id: f for f in left}
+    for f in right:
+        if f.id in fonti_dict:
+            existing_texts = set(fonti_dict[f.id].ricostruito_testo)
+            for t in f.ricostruito_testo:
+                if t not in existing_texts:
+                    fonti_dict[f.id].ricostruito_testo.append(t)
+        else:
+            fonti_dict[f.id] = f
+            
+    return list(fonti_dict.values())
+
+
 class SearchState(AgentState):
-    list_fonte: list[Fonte]
-    # list_fonte: Annotated[list[Fonte], operator.add]
+    list_fonte: Annotated[list[Fonte], reduce_fonti]
