@@ -29,7 +29,7 @@ from src.services.embeddings import EmbeddingAzure
 from src.services.qdrant import QdrantHybridRetriever
 from src.graph.research.content_intent import content_intent
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 LIMIT_QDRANT_TOP = 10
 
@@ -51,14 +51,15 @@ def extractionFonte(formatted_results, list_fonte: list[Fonte]) -> list[Fonte]:
         print("TIPO: ", result["tipo"])
         if result["tipo"] == "circolare":
             fonte: Fonte = estrazione_circolari(result)
-
             if fonte.id not in nome_id:
                 nome_id.add(fonte.id)
                 list_fonte.append(fonte)
             else:
                 # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
                 for elem in list_fonte:
-                    elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                    if fonte.id == elem.id:
+                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                        break
         elif result["tipo"] == "giurisprudenza":
             fonte: Fonte = estrazione_giurisprudenza(result)
 
@@ -68,8 +69,9 @@ def extractionFonte(formatted_results, list_fonte: list[Fonte]) -> list[Fonte]:
             else:
                 # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
                 for elem in list_fonte:
-                    elem.ricostruito_testo.extend(fonte.ricostruito_testo)
-
+                    if fonte.id == elem.id:
+                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                        break
         elif result["tipo"] == "risoluzione":
             fonte: Fonte = estrazione_risoluzione(result)
 
@@ -79,8 +81,9 @@ def extractionFonte(formatted_results, list_fonte: list[Fonte]) -> list[Fonte]:
             else:
                 # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
                 for elem in list_fonte:
-                    elem.ricostruito_testo.extend(fonte.ricostruito_testo)
-
+                    if fonte.id == elem.id:
+                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                        break
         elif result["tipo"] == "provvedimento":
             fonte: Fonte = estrazione_provvedimento(result)
 
@@ -90,7 +93,9 @@ def extractionFonte(formatted_results, list_fonte: list[Fonte]) -> list[Fonte]:
             else:
                 # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
                 for elem in list_fonte:
-                    elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                    if fonte.id == elem.id:
+                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                        break
 
         # if result["tipo"] == "circolare":
 
@@ -148,6 +153,9 @@ def _rag_query_implement(
         # ANALIZZARE IL FORMATO ED ESPANDERE CON MONGODB
         list_fonte = extractionFonte(formatted_results, list_fonte)
 
+        # TODO ANALIZZARE FONTE PER FONTE E INSERIRE NELLA LISTA
+        list_fonte = sorted(list_fonte, key=lambda x: x.score, reverse=True)[:10]
+
         print("RITORNO ELEM")
     except Exception as e:
         print("ERRORE: ", str(e))
@@ -169,11 +177,10 @@ def _rag_query_implement(
 
     for fonte in list_fonte:
         header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
-        #corpo = "\n\n".join(fonte.ricostruito_testo)
-        #footer = "</Fonte>"
+        corpo = "\n\n".join(fonte.ricostruito_testo)
+        footer = "</Fonte>"
 
-        # testo += header + "\n" + corpo + "\n" + footer + "\n\n"
-        testo += header + "\n"
+        testo += header + "\n" + corpo + "\n" + footer + "\n\n"
 
     print("RICOSTRUITO IL TESTO")
     print(len(testo))
@@ -209,10 +216,12 @@ def rag_query(
     return _rag_query_implement(query, tipo, state, tool_call_id)
 
 def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, state: Annotated[SearchState, InjectedState], tool_call_id: Annotated[str, InjectedToolCallId]) -> list:
-    list_fonte = state["list_fonte"]
+    list_fonte: list[Fonte] = state["list_fonte"]
 
     elem: Fonte = estrazione_norma_specifica(anno, numero, articolo)
-    list_fonte.append(elem)
+    
+    if elem is not None:
+        list_fonte.append(elem)
 
     testo = ""
 
@@ -230,11 +239,10 @@ def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, state: Ann
 
     for fonte in list_fonte:
         header = f"<Fonte id={fonte.id}, tipo={fonte.tipo}, data={fonte.data}>"
-        #corpo = "\n\n".join(fonte.ricostruito_testo)
-        #footer = "</Fonte>"
+        corpo = "\n\n".join(fonte.ricostruito_testo)
+        footer = "</Fonte>"
 
-        # testo += header + "\n" + corpo + "\n" + footer + "\n\n"
-        testo += header + "\n"
+        testo += header + "\n" + corpo + "\n" + footer + "\n\n"
     
     return Command(
         update={
@@ -288,7 +296,9 @@ def summary_writing(
     """
 
     print("==== SUMMARY WRITING ====")
-    
+    if not list_fonte:
+        print("LISTA è VUOTA DELLE FONTI")
+        return "Nessuna informazione o fonte normativa rilevante trovata in questo step."
 
     # list_fonte = state["list_fonte"]
     testo = ""
@@ -300,11 +310,12 @@ def summary_writing(
 
         testo += header + "\n" + corpo + "\n" + footer + "\n\n"
     
+    print("SUMMARY LUNGHEZZA: ", len(testo))
     summary_prompt = ChatPromptTemplate.from_template(
         """
         Sei un esperto di diritto tributario italiano.
-        Il tuo compito è fare un riassunto dettagliato delle informazioni trovate durate la richerca.
-        Ripoorta le infromazioni riassumento quindi estrarre i concetti più importanti.
+        Il tuo compito è fare un riassunto delle informazioni trovate durate la richerca.
+        Riporta le infromazioni riassumendo quindi estrarre i concetti più importanti.
         
         <TESTO DA ANALIZZARE>
         {testo}
@@ -319,6 +330,8 @@ def summary_writing(
     )
 
     summary = summary_agent.invoke({"testo": testo})
+
+    print("FINE RIASSUNTO")
 
     return summary.content
 
@@ -348,7 +361,7 @@ def summary_writing_summary(
         """
     )
 
-    summary_agent = summary_prompt | AzureChatOpenAI(
+    summary_agent = summary_prompt | Op(
         azure_deployment="gpt-4.1-mini",
         api_version="2024-12-01-preview",
         max_tokens=1000,

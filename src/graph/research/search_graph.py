@@ -47,8 +47,8 @@ rag_search_agent = create_agent(
     tools,
     system_prompt=RESEARCHER_INSTRUCTIONS.format(date=get_today_str()),
     state_schema=SearchState,  # now defining state scheme
-).with_config({"recursion_limit": 10})
-
+)
+# .with_config({"recursion_limit": 20})
 
 if __name__ == "__main__":
     # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))

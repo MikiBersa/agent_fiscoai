@@ -235,7 +235,7 @@ def should_end(state: PlanExecute):
 # METTERE QUI IL TESTO
 async def thinker_step(state: PlanExecute):
     print("LEN POST STEPS", len(state["past_steps"]))
-    thinker_response = await thinker.ainvoke({"response_moment": state["response_moment"], "input": state["input"]})
+    thinker_response = await thinker.ainvoke({"response_moment": state["response_moment"], "input": state["input"], "planning": state["plan"]})
     return {"thinker": thinker_response.content}
 
 
@@ -274,7 +274,7 @@ if __name__ == "__main__":
     # display(Image(todo_workflow.get_graph(xray=True).draw_mermaid_png()))
     
     async def main():
-        thread = {"configurable": {"thread_id": "12"}}
+        thread = {"configurable": {"thread_id": "50"}}
         input = """ALF A], di seguito anche istante, fa presente quanto nel prosieguo sinteticamente
 riportato.
 L'istante è una società in house della Regione [...] ­ costituita il [...] 2003, ai sensi
@@ -297,7 +297,7 @@ dei corrispettivi riscossi, laddove l'annotazione delle ''bollette/fatture''
 elettronicamente, non determinerebbe alcun effetto di anticipazione dell'esigibilità
 dell'imposta ex art. 6, comma 2, Decreto IVA»."""
         inputs = {"messages": [("user", input)], 
-            "response_moment": "", "input": input, "list_fonte": []}
+            "response_moment": "", "input": input, "list_fonte": [], "plan": []}
 
         async for event in todo_workflow.astream(inputs, config=thread):
             for k, v in event.items():

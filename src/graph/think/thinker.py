@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 """
 llm = AzureChatOpenAI(
@@ -231,6 +231,11 @@ thinker_prompt = ChatPromptTemplate.from_template(
     <QUESITO>
     {input}
     </QUESITO>
+
+    Planning attuale della ricerca:
+    <PLANNING>
+    {planning}
+    </PLANNING>
     
     Devi prendere le prossime decisioni in base alle infromazioni che ti vengono date ora.
     Quindi devi pianificare quale ricerche fare successivamente.

@@ -76,7 +76,7 @@ def estrazione_circolari(result):
         "original_text": "",
         "ricostruito_testo": "",
         "tipo": "circolare",
-        "score": 0.0,
+        "score": result["score"],
         "data": "",
         "cites": [],
     }
@@ -170,7 +170,7 @@ def estrazione_giurisprudenza(result):
         "original_text": "",
         "ricostruito_testo": "",
         "tipo": "giurisprudenza",
-        "score": 0.0,
+        "score": result["score"],
         "data": "",
         "cites": [],
     }
@@ -252,7 +252,7 @@ def estrazione_risoluzione(result):
         "original_text": "",
         "ricostruito_testo": "",
         "tipo": "risoluzione",
-        "score": 0.0,
+        "score": result["score"],
         "data": "",
         "cites": [],
     }
@@ -334,7 +334,7 @@ def estrazione_provvedimento(result):
         "original_text": "",
         "ricostruito_testo": "",
         "tipo": "provvedimento",
-        "score": 0.0,
+        "score": result["score"],
         "data": "",
         "cites": [],
     }
@@ -417,7 +417,7 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
         "original_text": "",
         "ricostruito_testo": "",
         "tipo": "norma",
-        "score": 0.0,
+        "score": 100,
         "data": "",
         "cites": [],
     }

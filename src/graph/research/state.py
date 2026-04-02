@@ -47,6 +47,9 @@ def reduce_fonti(left: list[Fonte] | None, right: list[Fonte] | None) -> list[Fo
             
     return list(fonti_dict.values())
 
+def reduce_fonti(left: list[Fonte] | None, right: list[Fonte] | None) -> list[Fonte]:
+    return right
 
 class SearchState(AgentState):
     list_fonte: Annotated[list[Fonte], reduce_fonti]
+    # list_fonte: list[Fonte]
