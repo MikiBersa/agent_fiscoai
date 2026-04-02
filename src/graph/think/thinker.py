@@ -246,8 +246,8 @@ thinker_prompt = ChatPromptTemplate.from_template(
     """
 )
 
-thinker = thinker_prompt | AzureChatOpenAI(
-    azure_deployment="gpt-4.1-mini",
-    api_version="2024-12-01-preview",
-    max_tokens=1000,
+thinker = thinker_prompt | ChatOpenAI(
+    model="gpt-4.1-mini",
+    # api_version="2024-12-01-preview",
+    # max_tokens=1000,
 )

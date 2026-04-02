@@ -34,8 +34,8 @@ def get_today_str() -> str:
 
 
 model = init_chat_model(
-    "azure_openai:gpt-4.1-mini",  # nome modello lato LangChain
-    azure_deployment="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
+    "openai:gpt-4.1-mini",  # nome modello lato LangChain
+    # model="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
 )
 
 tools = [rag_query, rag_query_norma_specifica]  # new tool

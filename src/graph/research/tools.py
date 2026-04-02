@@ -323,10 +323,10 @@ def summary_writing(
         """
     )
 
-    summary_agent = summary_prompt | AzureChatOpenAI(
-        azure_deployment="gpt-4.1-mini",
-        api_version="2024-12-01-preview",
-        max_tokens=1000,
+    summary_agent = summary_prompt | ChatOpenAI(
+        model="gpt-4.1-mini",
+        # api_version="2024-12-01-preview",
+        # max_tokens=000,
     )
 
     summary = summary_agent.invoke({"testo": testo})
