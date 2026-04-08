@@ -254,6 +254,8 @@ workflow.add_edge("planner", "agent")
 workflow.add_edge("agent", "post_thinker")
 workflow.add_edge("post_thinker", "replan")
 
+# INSERIRE UNA SEZIONE IN CUI VIENE PRESO DOMANDA E RISPOSTA DEL'UTENTE DA FARE A LUI
+
 workflow.add_conditional_edges(
     "replan",
     # Next, we pass in the function that will determine which node is called next.

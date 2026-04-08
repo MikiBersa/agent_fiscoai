@@ -23,7 +23,7 @@ from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 
-from src.graph.research.estrazione import estrazione_circolari, estrazione_giurisprudenza, estrazione_risoluzione, estrazione_provvedimento, estrazione_norma_specifica
+from src.graph.research.estrazione import estrazione_circolari, estrazione_giurisprudenza, estrazione_risoluzione, estrazione_provvedimento, estrazione_norma_specifica, estrazione_norma
 from src.graph.research.state import Fonte, SearchState
 from src.services.embeddings import EmbeddingAzure
 from src.services.qdrant import QdrantHybridRetriever
@@ -96,6 +96,18 @@ def extractionFonte(formatted_results, list_fonte: list[Fonte]) -> list[Fonte]:
                     if fonte.id == elem.id:
                         elem.ricostruito_testo.extend(fonte.ricostruito_testo)
                         break
+        elif result["tipo"] == "norma":
+            fonte: Fonte = estrazione_norma(result)
+
+            if fonte.id not in nome_id:
+                nome_id.add(fonte.id)
+                list_fonte.append(fonte)
+            else:
+                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                for elem in list_fonte:
+                    if fonte.id == elem.id:
+                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                        break
 
         # if result["tipo"] == "circolare":
 
@@ -120,6 +132,7 @@ def _rag_query_implement(
     """
     list_fonte = state["list_fonte"]
     print("==== RICERCA RAG =====")
+    # QUI MODIFICARE LA QUERY => TRASFORMARLO NEL CASO
     print(query)
 
     retriever = get_qrant()

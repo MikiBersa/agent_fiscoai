@@ -1,3 +1,4 @@
+# from rich.traceback import foo
 import os
 import sys
 import warnings
@@ -154,7 +155,7 @@ def estrazione_circolari(result):
         # original_text=fonte["original_text"],
         original_text="",
         tipo=fonte["tipo"],
-        score=0.0,
+        score=result["score"],
         data=fonte["data"],
         ricostruito_testo=[elem["text"] for elem in circolare_chunks],
         url=fonte["url"],
@@ -237,7 +238,7 @@ def estrazione_giurisprudenza(result):
         # original_text=fonte["original_text"],
         original_text="",
         tipo=fonte["tipo"],
-        score=0.0,
+        score=result["score"],
         data=fonte["data"],
         ricostruito_testo=[elem["text"] for elem in giurisprudenza_chunks],
         url=fonte["url"],
@@ -319,7 +320,7 @@ def estrazione_risoluzione(result):
         # original_text=fonte["original_text"],
         original_text="",
         tipo=fonte["tipo"],
-        score=0.0,
+        score=result["score"],
         data=fonte["data"],
         ricostruito_testo=[elem["text"] for elem in risoluzione_chunks],
         url=fonte["url"],
@@ -401,7 +402,7 @@ def estrazione_provvedimento(result):
         # original_text=fonte["original_text"],
         original_text="",
         tipo=fonte["tipo"],
-        score=0.0,
+        score=result["score"],
         data=fonte["data"],
         ricostruito_testo=[elem["text"] for elem in provvedimento_chunks],
         url=fonte["url"],
@@ -463,7 +464,7 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
         # original_text=fonte["original_text"],
         original_text="",
         tipo=fonte["tipo"],
-        score=0.0,
+        score=100,
         data=fonte["data"],
         ricostruito_testo=[fonte["original_text"]],
         url=fonte["url"],
@@ -471,41 +472,156 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
     )
     return fonte
 
+def estrazione_norma(result):
+    fonte = {
+        "mongo_id": "",
+        "id": "",
+        "original_text": "",
+        "ricostruito_testo": "",
+        "tipo": "norma",
+        "score": result["score"],
+        "data": "",
+        "cites": [],
+    }
 
+    mongodb = MongoDBConnection()
+    mongodb.connection()
+    mongodb.set_collection("normattiva_chunk")
+
+    id = result["id"]
+
+    norma_chunk = mongodb.get_chunk(
+        filtro={"_id": id},
+        procet={"original_article_nome_id": 1, "chunk_number": 1, "original_article": 1},
+    )
+
+    nome_id = norma_chunk["original_article_nome_id"]
+
+    # 1) ritorno del padre
+
+    # print("ELEM: ", nome_id)
+
+    mongodb.set_collection("normattiva_original")
+    norma_original = mongodb.get_chunk(
+        filtro={"nome_id": nome_id},
+        procet={
+            "_id": 1,
+            "url": 1,
+            "data": 1,
+            "article": {
+                "$elemMatch": {
+                    "id": norma_chunk["original_article"]
+                }
+            }
+        },
+    )
+    
+
+    # print(circolare_original)
+    # print("\n\n\n", norma_original)
+
+    data = str(norma_original["data"])
+    data = data[6:] + "/" + data[4:6] + "/" + data[0:4]
+
+    fonte["mongo_id"] = str(norma_original["_id"])
+    fonte["id"] = str(norma_chunk["original_article"])
+    fonte["data"] = data
+    fonte["original_text"] = norma_original["article"][0]["testo"]
+    fonte["url"] = str(norma_original["url"])
+
+    # print("=====")
+
+    # print(fonte)
+
+    # 2) espansione a paragrafo
+    mongodb.set_collection("normattiva_chunk")
+
+    num_total = mongodb.count_chunks(filtro={"original_article": norma_chunk["original_article"]})
+
+    # print("NOME ID: ", nome_id, num_total)
+
+    # print("=====: ", num_total)
+
+    array_chunk = build_chunk_window(norma_chunk["chunk_number"], num_total)
+
+    # print(array_chunk)
+
+    norma_chunks = mongodb.get_chunks(
+        filtro={"original_article": norma_chunk["original_article"], "chunk_number": {"$in": array_chunk}},
+        procet={"text_chunks": 1},
+        index="index_article"
+    )
+
+    # OPPURE LEN DI array_chunk PRENDERE INTERO ARTICOLO => DA NORMA CHUNK
+    original_text = ""
+    if num_total < 20:
+        original_text = norma_original["article"][0]["testo"]
+        
+
+
+    # 3) espansione citazioni
+    # 5) controllare doppioni dopo
+
+    #  4) costruzione dell'oggetto
+    fonte = Fonte(
+        mongo_id=fonte["mongo_id"],
+        id=fonte["id"],
+        # original_text=fonte["original_text"],
+        original_text=original_text,
+        tipo=fonte["tipo"],
+        score=result["score"],
+        data=fonte["data"],
+        ricostruito_testo=[elem["text_chunks"] for elem in norma_chunks],
+        url=fonte["url"],
+        cites=[],
+    )
+
+    
+    return fonte
     
 
 if __name__ == "__main__":
     print("CIRCOLARE")
-    elem: Fonte = estrazione_circolari({"id": "67f12a3172d91a31f1960862"})
+    elem: Fonte = estrazione_circolari({"id": "67f12a3172d91a31f1960862", "score": 0.0})
 
     for elem_ in elem.ricostruito_testo:
         print(elem_[:30])
         print("=" * 80)
 
     print("GIURI")
-    elem: Fonte = estrazione_giurisprudenza({"id": "6887f9562b2786535ee7a6aa"})
+    elem: Fonte = estrazione_giurisprudenza({"id": "6887f9562b2786535ee7a6aa", "score": 0.0})
 
     for elem_ in elem.ricostruito_testo:
         print(elem_[:30])
         print("=" * 80)
 
     print("RISOLUZIONI")
-    elem: Fonte = estrazione_risoluzione({"id": "67f44fd5dd2da090401d31c4"})
+    elem: Fonte = estrazione_risoluzione({"id": "67f44fd5dd2da090401d31c4", "score": 0.0})
 
     for elem_ in elem.ricostruito_testo:
         print(elem_[:30])
         print("=" * 80)
 
     print("PROVVEDIMENTI")
-    elem: Fonte = estrazione_provvedimento({"id": "6843ff8e803b4a91b05dbb6c"})
+    elem: Fonte = estrazione_provvedimento({"id": "6843ff8e803b4a91b05dbb6c", "score": 0.0})
 
     for elem_ in elem.ricostruito_testo:
         print(elem_[:30])
         print("=" * 80)
 
-    print("NORMA")
+    print("NORMA SPECIFICA")
     elem: Fonte = estrazione_norma_specifica("2024", "146", "2")
 
     for elem_ in elem.ricostruito_testo:
         print(elem_[:30])
         print("=" * 80)
+
+
+    print("NORMA")
+    elem: Fonte = estrazione_norma({"id": "67eb045560924d64d96e2db1", "score": 0.0})
+
+    for elem_ in elem.ricostruito_testo:
+        print(elem_[:30])
+        print("=" * 80)
+
+    print(elem.original_text)
