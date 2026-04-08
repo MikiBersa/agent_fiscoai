@@ -232,9 +232,16 @@ def _rag_query_norma_specifica(anno: str, numero: str, articolo: str, state: Ann
     list_fonte: list[Fonte] = state["list_fonte"]
 
     elem: Fonte = estrazione_norma_specifica(anno, numero, articolo)
-    
+
     if elem is not None:
-        list_fonte.append(elem)
+        existing_ids = {fonte.id for fonte in list_fonte}
+        if elem.id not in existing_ids:
+            list_fonte.append(elem)
+        #else:
+        #    for fonte in list_fonte:
+        #        if fonte.id == elem.id:
+        #            fonte.ricostruito_testo.extend(elem.ricostruito_testo)
+        #            break
 
     testo = ""
 
@@ -345,6 +352,59 @@ def summary_writing(
     summary = summary_agent.invoke({"testo": testo})
 
     print("FINE RIASSUNTO")
+
+    return summary.content
+
+def responce_writing(
+    past_steps: list[tuple[str, str]],
+    summary_moment: str,
+    responce_moment: str,
+    quesito_utente: str
+) -> str:
+
+    print("==== RESPONSE WRITING ====")
+
+    
+    rsponse_prompt = ChatPromptTemplate.from_template(
+        """
+        Sei un esperto di diritto tributario italiano.
+        Il tuo compito è aggiornare lo stato del ragionamento avvenuto fino ad ora, tenendo conto delle informazioni trovate durate la richerca.
+    
+        Pssai già fatti nella ricerca:
+        <PAST STEPS>
+        {past_steps}
+        </PAST STEPS>
+        
+        Riassunto dei passaggi fatti fino ad ora:
+        <SUMMARY MOMENT>
+        {summary_moment}
+        </SUMMARY MOMENT>
+        
+        Ragionamento precedente creato grazie agli step precedenti:
+        <RESPONCE MOMENT>
+        {responce_moment}
+        </RESPONCE MOMENT>
+
+        Quello che ti chiedo è aggiornare il ragionamento con le ricerche fatte fino ad ora e di ainderizzare le nuove ricerche per rispondere bene al quesito dell'utente.
+
+        Questito utente:
+        <QUESITO UTENTE>
+        {quesito_utente}
+        </QUESITO UTENTE>
+
+        Ritorna il ragionamento aggiornato:
+        """
+    )
+
+    responce_agent = rsponse_prompt | AzureChatOpenAI(
+        model="gpt-5-mini",
+        api_version="2024-12-01-preview",
+        # max_tokens=000,
+    )
+
+    summary = responce_agent.invoke({"quesito_utente": quesito_utente, "past_steps": past_steps, "summary_moment": summary_moment, "responce_moment": responce_moment})
+
+    print("FINE RESPONSE WRITING")
 
     return summary.content
 

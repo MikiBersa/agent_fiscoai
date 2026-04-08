@@ -452,9 +452,9 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
     fonte["data"] = str(norma_original["data"]) 
     
     if testo == "":
-        fonte["original_text"] = "\n\n".join(norma_original["text"])[:250]
+        fonte["original_text"] = "\n\n".join(norma_original["text"])[:2000]
     else:
-        fonte["original_text"] = testo[:250]
+        fonte["original_text"] = testo[:2000]
 
     fonte["url"] = str(norma_original["url"])
 
@@ -496,6 +496,7 @@ def estrazione_norma(result):
     )
 
     nome_id = norma_chunk["original_article_nome_id"]
+    nome_article = norma_chunk["original_article"]
 
     # 1) ritorno del padre
 
@@ -556,6 +557,8 @@ def estrazione_norma(result):
     original_text = ""
     if num_total < 20:
         original_text = norma_original["article"][0]["testo"]
+
+    print("NOME ID: ", nome_article, num_total)
         
 
 

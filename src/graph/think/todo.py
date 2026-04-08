@@ -38,7 +38,7 @@ from src.graph.think.response import response_llm
 from src.graph.research.search_graph import rag_search_agent
 from src.graph.research.state import Fonte
 from langchain.agents import AgentState
-from src.graph.research.tools import summary_writing, summary_writing_summary
+from src.graph.research.tools import summary_writing, summary_writing_summary, responce_writing
 
 
 class PlanExecute(AgentState):
@@ -196,10 +196,20 @@ def execute_step(state: PlanExecute):
     if len(state["list_fonte"]) > 25:
         summary_moment = summary_writing_summary(summary_moment)
 
+    steps = state["past_steps"]
+    steps.append((task, summary_moment))
+    # TODO PORTARE AVANTI IL RAGIONAMENTO NELLA RICERCA
+    responce_moment = responce_writing(
+        steps,
+        summary_moment,
+        state["responce_moment"],
+        state["input"],
+    )
+
     return {
         "past_steps": [(task, summary_moment)],
         "list_fonte": agent_response["list_fonte"],
-        "response_moment": summary_moment,
+        "response_moment": responce_moment,
     }
 
 

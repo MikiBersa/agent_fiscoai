@@ -239,6 +239,7 @@ thinker_prompt = ChatPromptTemplate.from_template(
     
     Devi prendere le prossime decisioni in base alle infromazioni che ti vengono date ora.
     Quindi devi pianificare quale ricerche fare successivamente.
+    Considera il ragiornamento fatto fino adesso per inderizzare le ricerche in maniera accurata.
 
     <Informazioni ATTUALE>
     {response_moment}
