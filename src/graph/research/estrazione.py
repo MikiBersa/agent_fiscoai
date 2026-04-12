@@ -441,10 +441,12 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
         return None
 
     testo = ""
+    articolo_nome_id = ""
     for article in norma_original["article"]:
         if articolo in article["articolo_num"]:
             print("**** TROVATO ARTICOLO: ", article["articolo_num"], articolo, "****")
             testo = article["testo"]
+            articolo_nome_id = article["id"]
             break
 
     fonte["mongo_id"] = str(norma_original["_id"])
@@ -455,6 +457,7 @@ def estrazione_norma_specifica(anno: str, numero: str, articolo: str):
         fonte["original_text"] = "\n\n".join(norma_original["text"])[:2000]
     else:
         fonte["original_text"] = testo[:2000]
+        fonte["id"] = articolo_nome_id
 
     fonte["url"] = str(norma_original["url"])
 
@@ -498,6 +501,8 @@ def estrazione_norma(result):
     nome_id = norma_chunk["original_article_nome_id"]
     nome_article = norma_chunk["original_article"]
 
+    print("TIPO norma_chunk: ", type(norma_chunk))
+
     # 1) ritorno del padre
 
     # print("ELEM: ", nome_id)
@@ -516,6 +521,8 @@ def estrazione_norma(result):
             }
         },
     )
+
+    print("TIPO norma_original: ", type(norma_original), nome_id, norma_chunk["original_article"])
     
 
     # print(circolare_original)
@@ -545,7 +552,7 @@ def estrazione_norma(result):
 
     array_chunk = build_chunk_window(norma_chunk["chunk_number"], num_total)
 
-    # print(array_chunk)
+    print("ARRAY CHUNK: ", array_chunk)
 
     norma_chunks = mongodb.get_chunks(
         filtro={"original_article": norma_chunk["original_article"], "chunk_number": {"$in": array_chunk}},

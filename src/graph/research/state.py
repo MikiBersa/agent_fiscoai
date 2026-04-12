@@ -51,5 +51,6 @@ def reduce_fonti(left: list[Fonte] | None, right: list[Fonte] | None) -> list[Fo
     return right
 
 class SearchState(AgentState):
+    input: str
     list_fonte: Annotated[list[Fonte], reduce_fonti]
     # list_fonte: list[Fonte]

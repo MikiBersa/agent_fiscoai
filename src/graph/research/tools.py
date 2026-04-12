@@ -28,6 +28,8 @@ from src.graph.research.state import Fonte, SearchState
 from src.services.embeddings import EmbeddingAzure
 from src.services.qdrant import QdrantHybridRetriever
 from src.graph.research.content_intent import content_intent
+from src.graph.research.rewrting import rewrting_query
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
@@ -50,64 +52,85 @@ def extractionFonte(formatted_results, list_fonte: list[Fonte]) -> list[Fonte]:
     for result in formatted_results:
         print("TIPO: ", result["tipo"])
         if result["tipo"] == "circolare":
-            fonte: Fonte = estrazione_circolari(result)
-            if fonte.id not in nome_id:
-                nome_id.add(fonte.id)
-                list_fonte.append(fonte)
-            else:
-                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
-                for elem in list_fonte:
-                    if fonte.id == elem.id:
-                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
-                        break
+            try:
+                fonte: Fonte = estrazione_circolari(result)
+                if fonte.id not in nome_id:
+                    nome_id.add(fonte.id)
+                    list_fonte.append(fonte)
+                else:
+                    # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                    for elem in list_fonte:
+                        if fonte.id == elem.id:
+                            elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                            break
+            except Exception as e:
+                print("ERRORE: ", str(e))
+                continue
         elif result["tipo"] == "giurisprudenza":
-            fonte: Fonte = estrazione_giurisprudenza(result)
+            try:
+                fonte: Fonte = estrazione_giurisprudenza(result)
 
-            if fonte.id not in nome_id:
-                nome_id.add(fonte.id)
-                list_fonte.append(fonte)
-            else:
-                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
-                for elem in list_fonte:
-                    if fonte.id == elem.id:
-                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
-                        break
+                if fonte.id not in nome_id:
+                    nome_id.add(fonte.id)
+                    list_fonte.append(fonte)
+                else:
+                    # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                    for elem in list_fonte:
+                        if fonte.id == elem.id:
+                            elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                            break
+            except Exception as e:
+                print("ERRORE: ", str(e))
+                continue
         elif result["tipo"] == "risoluzione":
-            fonte: Fonte = estrazione_risoluzione(result)
+            try:
+                fonte: Fonte = estrazione_risoluzione(result)
 
-            if fonte.id not in nome_id:
-                nome_id.add(fonte.id)
-                list_fonte.append(fonte)
-            else:
-                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
-                for elem in list_fonte:
-                    if fonte.id == elem.id:
-                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
-                        break
+                if fonte.id not in nome_id:
+                    nome_id.add(fonte.id)
+                    list_fonte.append(fonte)
+                else:
+                    # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                    for elem in list_fonte:
+                        if fonte.id == elem.id:
+                            elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                            break
+            except Exception as e:
+                print("ERRORE: ", str(e))
+                continue
         elif result["tipo"] == "provvedimento":
-            fonte: Fonte = estrazione_provvedimento(result)
+            try:
+                fonte: Fonte = estrazione_provvedimento(result)
 
-            if fonte.id not in nome_id:
-                nome_id.add(fonte.id)
-                list_fonte.append(fonte)
-            else:
-                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
-                for elem in list_fonte:
-                    if fonte.id == elem.id:
-                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
-                        break
+                if fonte.id not in nome_id:
+                    nome_id.add(fonte.id)
+                    list_fonte.append(fonte)
+                else:
+                    # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                    for elem in list_fonte:
+                        if fonte.id == elem.id:
+                            elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                            break
+            except Exception as e:
+                print("ERRORE: ", str(e))
+                continue
+
         elif result["tipo"] == "norma":
-            fonte: Fonte = estrazione_norma(result)
+            try:
+                fonte: Fonte = estrazione_norma(result)
 
-            if fonte.id not in nome_id:
-                nome_id.add(fonte.id)
-                list_fonte.append(fonte)
-            else:
-                # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
-                for elem in list_fonte:
-                    if fonte.id == elem.id:
-                        elem.ricostruito_testo.extend(fonte.ricostruito_testo)
-                        break
+                if fonte.id not in nome_id:
+                    nome_id.add(fonte.id)
+                    list_fonte.append(fonte)
+                else:
+                    # TODO SE è DOPPIONE AGGIUNGEEREE NLE LIST
+                    for elem in list_fonte:
+                        if fonte.id == elem.id:
+                            elem.ricostruito_testo.extend(fonte.ricostruito_testo)
+                            break
+            except Exception as e:
+                print("ERRORE: ", str(e))
+                continue
 
         # if result["tipo"] == "circolare":
 
@@ -133,7 +156,10 @@ def _rag_query_implement(
     list_fonte = state["list_fonte"]
     print("==== RICERCA RAG =====")
     # QUI MODIFICARE LA QUERY => TRASFORMARLO NEL CASO
-    print(query)
+    print("PRIMA:", query)
+    
+    query = rewrting_query(input=state["input"], query=query)
+    print("DOPO:", query)
 
     retriever = get_qrant()
 
@@ -357,8 +383,7 @@ def summary_writing(
 
 def responce_writing(
     past_steps: list[tuple[str, str]],
-    summary_moment: str,
-    responce_moment: str,
+    response_moment: str,
     quesito_utente: str
 ) -> str:
 
@@ -375,14 +400,9 @@ def responce_writing(
         {past_steps}
         </PAST STEPS>
         
-        Riassunto dei passaggi fatti fino ad ora:
-        <SUMMARY MOMENT>
-        {summary_moment}
-        </SUMMARY MOMENT>
-        
         Ragionamento precedente creato grazie agli step precedenti:
         <RESPONCE MOMENT>
-        {responce_moment}
+        {response_moment}
         </RESPONCE MOMENT>
 
         Quello che ti chiedo è aggiornare il ragionamento con le ricerche fatte fino ad ora e di ainderizzare le nuove ricerche per rispondere bene al quesito dell'utente.
@@ -392,17 +412,18 @@ def responce_writing(
         {quesito_utente}
         </QUESITO UTENTE>
 
+        Nell'analisi devi stare attendo ai ragionamenti che hai fatto in passato e a quello che hai trovato con le ricerche, ma soprattutto i termini cerca di comprenderli bene.
         Ritorna il ragionamento aggiornato:
         """
     )
 
-    responce_agent = rsponse_prompt | AzureChatOpenAI(
+    responce_agent = rsponse_prompt | ChatOpenAI(
         model="gpt-5-mini",
-        api_version="2024-12-01-preview",
+        # api_version="2024-12-01-preview",
         # max_tokens=000,
     )
 
-    summary = responce_agent.invoke({"quesito_utente": quesito_utente, "past_steps": past_steps, "summary_moment": summary_moment, "responce_moment": responce_moment})
+    summary = responce_agent.invoke({"quesito_utente": quesito_utente, "past_steps": past_steps, "response_moment": response_moment})
 
     print("FINE RESPONSE WRITING")
 
@@ -434,7 +455,7 @@ def summary_writing_summary(
         """
     )
 
-    summary_agent = summary_prompt | Op(
+    summary_agent = summary_prompt | AzureChatOpenAI(
         azure_deployment="gpt-4.1-mini",
         api_version="2024-12-01-preview",
         max_tokens=1000,

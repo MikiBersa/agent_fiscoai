@@ -185,7 +185,7 @@ def execute_step(state: PlanExecute):
     #)
 
     agent_response = rag_search_agent.invoke(
-        {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": state.get("list_fonte", []), "summary": ""}
+        {"messages": [{"role": "user", "content": task_formatted}], "list_fonte": state.get("list_fonte", []), "summary": "", "input": state["input"]}
     )
 
     print("RICERCA: ", len(agent_response["list_fonte"]))
@@ -198,18 +198,18 @@ def execute_step(state: PlanExecute):
 
     steps = state["past_steps"]
     steps.append((task, summary_moment))
-    # TODO PORTARE AVANTI IL RAGIONAMENTO NELLA RICERCA
-    responce_moment = responce_writing(
+    
+    # PORTARE AVANTI IL RAGIONAMENTO NELLA RICERCA
+    response_moment = responce_writing(
         steps,
-        summary_moment,
-        state["responce_moment"],
+        state["response_moment"],
         state["input"],
     )
 
     return {
         "past_steps": [(task, summary_moment)],
         "list_fonte": agent_response["list_fonte"],
-        "response_moment": responce_moment,
+        "response_moment": response_moment,
     }
 
 
@@ -287,27 +287,29 @@ if __name__ == "__main__":
     
     async def main():
         thread = {"configurable": {"thread_id": "50"}}
-        input = """ALF A], di seguito anche istante, fa presente quanto nel prosieguo sinteticamente
-riportato.
-L'istante è una società in house della Regione [...] ­ costituita il [...] 2003, ai sensi
-dell'articolo 40 della Legge Regionale [...] e successive modifiche ­ posseduta al 53,5%
-dalla stessa Regione e per il restante 46,5% dalla medesima [ALF A].
-A seguito di Deliberazione n. [...] del 2022 ­ con cui si dispone l'affidamento,
-in favore dell'istante, del Servizio Idrico Integrato (''SII'') per i segmenti: captazione
-e adduzione acque potabili, distribuzione, fognatura e depurazione per l'intera
-circoscrizione regionale per un arco temporale di 30 anni, con decorrenza dal 1° gennaio
-Pagina 2 di 5
-2023 ­ con il successivo Accordo operativo di cui al repertorio n. [...] del [...] 2023, la
-società si è, quindi, obbligata nei confronti del Comune [...] ad emettere in nome proprio
-le fatture relative al SII nei confronti dei clienti finali.
-Ciò premesso, l'istante chiede conferma circa «l'applicabilità alla fattispecie in
-esame dell'art. 2 del Decreto [ministeriale 24 ottobre 2000, n. 370, ndr], nella parte
-in cui prevede che, per il servizio di somministrazione di acqua, si possa limitarsi ad
-annotare nel registro dei corrispettivi di cui all'art. 24 del Decreto IVA l'ammontare
-dei corrispettivi riscossi, laddove l'annotazione delle ''bollette/fatture''
-, ancorché emesse
-elettronicamente, non determinerebbe alcun effetto di anticipazione dell'esigibilità
-dell'imposta ex art. 6, comma 2, Decreto IVA»."""
+        input = """ALFA (di seguito,
+''Istante'' o la ''Società''), con l'istanza di interpello in oggetto,
+chiede chiarimenti in merito alla determinazione della base imponibile del contributo di
+solidarietà temporaneo dovuto per l'anno 2023, introdotto dall'articolo 1, commi da 115 a
+121, della legge 29 dicembre 2022, n. 197 (di seguito, anche, ''Legge di Bilancio 2023'').
+La Società, «attiva nel settore della distribuzione petrolifera [...] con il brand ''...
+'' utilizzato nelle [n.d.r. proprie] stazioni di servizio», dichiara di rientrare «fra i soggetti
+individuati dall'art. 1, comma 115 della Legge di Bilancio 2023 [...] tenuti al pagamento
+del contributo straordinario sul c.d. extraprofitto, generato dall'aumento dei prezzi e
+Pagina 2 di 13
+delle tariffe nel settore energetico» e rappresenta di aver ricevuto, nel dicembre del 2022,
+«un ristoro da parte di [...], relativo ad una controversia sorta [...] circa trenta anni fa».
+Detto ristoro, confermato dapprima dalla Corte d'Appello [...], e successivamente
+dalla Corte di Cassazione [...] ammonta a complessivi euro [...] ed è stato riconosciuto «a
+ristoro della perdita per il mancato guadagno in relazione ai prodotti commercializzati,
+rettificando i coefficienti relativi ai margini e ai pesi applicati alle quantità prodotte».
+Inoltre, la Società evidenzia che «al termine della controversia, sulla base di
+quanto ci è stato rappresentato per le vie brevi, la Società ha ricevuto da parte di [...],
+il bonifico per il ristoro di dette somme, lo scorso mese di dicembre 2022».
+Tanto premesso, l'Istante chiede se «la corresponsione di detto importo sia
+rilevante ai fini del calcolo del contributo di solidarietà temporaneo per il 2023,
+conformemente alle modalità di determinazione della base imponibile previste dalla
+norma»."""
         inputs = {"messages": [("user", input)], 
             "response_moment": "", "input": input, "list_fonte": [], "plan": []}
 

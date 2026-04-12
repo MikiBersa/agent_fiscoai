@@ -38,6 +38,7 @@ model = init_chat_model(
     # model="gpt-4.1-mini",  # oppure il nome reale del deployment Azure
 )
 
+# TODO CONTROLALRE CHE 
 tools = [rag_query, rag_query_norma_specifica]  # new tool
 
 # TODO RENDERLO PIù DETEMINISTICO
