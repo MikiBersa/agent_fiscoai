@@ -291,8 +291,8 @@ class QdrantHybridRetriever:
         self,
         query_text: str,
         mode: str = "hybrid",
-        limit: int = 10,
-        prefetch_limit: int = 30,
+        limit: int = 20, # 10
+        prefetch_limit: int = 40, # 30
         query_filter: models.Filter | None = None,
         with_payload: bool = True,
     ):
@@ -388,15 +388,17 @@ if __name__ == "__main__":
     print(result)
     """
 
-    query = "Ho ricevuto le informazioni necessarie per procedere: si tratta di una rilevazione in bilancio d'esercizio secondo OIC, riguardante ricavi da affitti non fatturati dopo l'attivazione di una composizione negoziata per crisi d'impresa. Procederò ora alla ricerca e analisi normativa per fornirti una risposta precisa."
+    query = "Vorrei registrare un contratto di locazione ad uso abitativo in cedolare secca: il contratto decorre dal 01/01/2025 per cui la tardiva registrazione è superiore a 30 giorni. A quanto ammonta la sanzione? Grazie"
 
     build_filter = retriever.build_filter(
-        tipo="circolare",
+        tipo="norma",
         # data_gte=datetime(2020, 1, 1),
         # data_lte=datetime(2024, 12, 31),
         # name_id_text = "ADE_C2-E_D14-03-2025" # MATCH ESATTO TESTO
     )
 
+    # TODO MEGLIO FARE LE RICERCHE IN MANIERA SEPARATA
     result = retriever.search(query, query_filter=build_filter)
 
-    print(result)
+    for elem in result.points:
+        print(elem.payload["name_id"])
